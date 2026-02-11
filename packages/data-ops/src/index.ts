@@ -1,5 +1,10 @@
-import { drizzle } from "drizzle-orm/d1";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from 'postgres';
+import * as schema from './db/schema';
 
 export { tasks } from "./db/schema";
 
-export const createDb = (d1: D1Database) => drizzle(d1);
+export const createDb = (connectionString: string) => {
+    const client = postgres(connectionString);
+    return drizzle(client, { schema })
+}

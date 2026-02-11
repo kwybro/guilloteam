@@ -1,12 +1,14 @@
-import { Database } from "bun:sqlite";
-import { drizzle } from "drizzle-orm/bun-sqlite";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { tasks } from "./schema";
 
-const DB_PATH =
-	"../../apps/api/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/d7e7dad26bda2eb41e10f2b5b0776873c53023ab37e537e0aca2622a0a57c851.sqlite";
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+	throw new Error("Missing DATABASE_URL environment variable");
+}
 
-const sqlite = new Database(DB_PATH);
-const db = drizzle(sqlite);
+const client = postgres(DATABASE_URL);
+const db = drizzle(client);
 
 const seedTasks = [
 	{
@@ -39,15 +41,13 @@ const seedTasks = [
 console.log("Seeding tasks...");
 
 // Clear existing data
-db.delete(tasks).run();
+await db.delete(tasks);
 
 // Insert seed data
-for (const task of seedTasks) {
-	db.insert(tasks).values(task).run();
-}
+await db.insert(tasks).values(seedTasks);
 
-const allTasks = db.select().from(tasks).all();
+const allTasks = await db.select().from(tasks);
 console.log(`Seeded ${allTasks.length} tasks:`);
 console.table(allTasks);
 
-sqlite.close();
+await client.end();
