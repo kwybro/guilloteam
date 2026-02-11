@@ -1,0 +1,21 @@
+{
+	"name": "@guilloteam/data-ops",
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"db:generate": "drizzle-kit generate",
+		"db:seed": "bun run src/db/seed.ts",
+		"db:studio:local": "ENV=local drizzle-kit studio",
+		"db:studio": "drizzle-kit studio"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^0.31.8",
+		"typescript": "^5.5.2"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.45.1"
+	}
+}
