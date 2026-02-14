@@ -16,6 +16,7 @@
       "name": "api",
       "dependencies": {
         "@guilloteam/data-ops": "workspace:*",
+        "@guilloteam/schemas": "workspace:*",
         "figlet": "^1.10.0",
         "hono": "^4.11.9",
       },
