@@ -1,5 +1,11 @@
 import { eq, isNull, projects } from "@guilloteam/data-ops";
-import { CreateProject, DeleteProject, GetProject, UpdateProject } from "@guilloteam/schemas";
+import {
+	CreateProject,
+	DeleteProject,
+	flattenError,
+	GetProject,
+	UpdateProject,
+} from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 
@@ -7,7 +13,10 @@ const projectRoutes = new Hono();
 
 // GET /projects — list all projects
 projectRoutes.get("/", async (c) => {
-	const result = await db.select().from(projects).where(isNull(projects.deletedAt));
+	const result = await db
+		.select()
+		.from(projects)
+		.where(isNull(projects.deletedAt));
 	return c.json(result);
 });
 
@@ -16,7 +25,7 @@ projectRoutes.get("/:id", async (c) => {
 	const { id } = c.req.param();
 	const parsed = GetProject.safeParse({ id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [project] = await db
 		.select()
@@ -33,7 +42,7 @@ projectRoutes.post("/", async (c) => {
 	const body = await c.req.json();
 	const parsed = CreateProject.safeParse(body);
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [project] = await db.insert(projects).values(parsed.data).returning();
 	return c.json(project, 201);
@@ -45,7 +54,7 @@ projectRoutes.patch("/:id", async (c) => {
 	const body = await c.req.json();
 	const parsed = UpdateProject.safeParse({ ...body, id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const { id: projectId, ...updates } = parsed.data;
 	const [project] = await db
@@ -64,7 +73,7 @@ projectRoutes.delete("/:id", async (c) => {
 	const { id } = c.req.param();
 	const parsed = DeleteProject.safeParse({ id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [project] = await db
 		.update(projects)

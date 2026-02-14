@@ -1,5 +1,11 @@
 import { eq, isNull, tasks } from "@guilloteam/data-ops";
-import { CreateTask, DeleteTask, GetTask, UpdateTask } from "@guilloteam/schemas";
+import {
+	CreateTask,
+	DeleteTask,
+	flattenError,
+	GetTask,
+	UpdateTask,
+} from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 
@@ -16,7 +22,7 @@ taskRoutes.get("/:id", async (c) => {
 	const { id } = c.req.param();
 	const parsed = GetTask.safeParse({ id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [task] = await db
 		.select()
@@ -33,7 +39,7 @@ taskRoutes.post("/", async (c) => {
 	const body = await c.req.json();
 	const parsed = CreateTask.safeParse(body);
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [task] = await db.insert(tasks).values(parsed.data).returning();
 	return c.json(task, 201);
@@ -45,7 +51,7 @@ taskRoutes.patch("/:id", async (c) => {
 	const body = await c.req.json();
 	const parsed = UpdateTask.safeParse({ ...body, id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const { id: taskId, ...updates } = parsed.data;
 	const [task] = await db
@@ -64,7 +70,7 @@ taskRoutes.delete("/:id", async (c) => {
 	const { id } = c.req.param();
 	const parsed = DeleteTask.safeParse({ id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [task] = await db
 		.update(tasks)

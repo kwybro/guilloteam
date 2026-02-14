@@ -1,5 +1,11 @@
 import { eq, isNull, teams } from "@guilloteam/data-ops";
-import { CreateTeam, DeleteTeam, GetTeam, UpdateTeam } from "@guilloteam/schemas";
+import {
+	CreateTeam,
+	DeleteTeam,
+	flattenError,
+	GetTeam,
+	UpdateTeam,
+} from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 
@@ -16,7 +22,7 @@ teamRoutes.get("/:id", async (c) => {
 	const { id } = c.req.param();
 	const parsed = GetTeam.safeParse({ id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [team] = await db
 		.select()
@@ -33,7 +39,7 @@ teamRoutes.post("/", async (c) => {
 	const body = await c.req.json();
 	const parsed = CreateTeam.safeParse(body);
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [team] = await db.insert(teams).values(parsed.data).returning();
 	return c.json(team, 201);
@@ -45,7 +51,7 @@ teamRoutes.patch("/:id", async (c) => {
 	const body = await c.req.json();
 	const parsed = UpdateTeam.safeParse({ ...body, id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const { id: teamId, ...updates } = parsed.data;
 	const [team] = await db
@@ -64,7 +70,7 @@ teamRoutes.delete("/:id", async (c) => {
 	const { id } = c.req.param();
 	const parsed = DeleteTeam.safeParse({ id });
 	if (!parsed.success) {
-		return c.json({ error: parsed.error.flatten() }, 400);
+		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [team] = await db
 		.update(teams)
