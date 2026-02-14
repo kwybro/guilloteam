@@ -11,6 +11,7 @@ export const CreateProject = Project.omit({
     id: true,
     createdAt: true,
     updatedAt: true,
+    deletedAt: true,
 })
 
 export const GetProject = Project.pick({
@@ -24,7 +25,9 @@ export const GetProjects = z.object({
 export const UpdateProject = Project.omit({
     createdAt: true,
     updatedAt: true,
+    deletedAt: true,
 }).partial().required({ id: true })
 
-// TODO: Decide what deleted means? `closed` status or deletedAt timestamp?
-// const DeleteProject = z.object({})
+export const DeleteProject = Project.pick({
+    id: true
+})

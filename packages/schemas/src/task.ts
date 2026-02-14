@@ -13,7 +13,8 @@ export const Task = z.object({
 export const CreateTask = Task.omit({
     id: true,
     createdAt: true,
-    updatedAt: true
+    updatedAt: true,
+    deletedAt: true,
 })
 
 export const GetTask = Task.pick({
@@ -26,8 +27,10 @@ export const GetTasks = z.object({
 
 export const UpdateTask = Task.omit({
     createdAt: true,
-    updatedAt: true
+    updatedAt: true,
+    deletedAt: true,
 }).partial().required({ id: true })
 
-// TODO: Decide what deleted means? deletedAt timestamp?
-// const DeleteTask = z.object({})
+export const DeleteTask = Task.pick({
+    id: true,
+})

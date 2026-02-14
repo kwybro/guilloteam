@@ -8,3 +8,16 @@ export const tasks = pgTable("tasks", {
 	status: text("status", { enum: ["open", "in_progress", "done", "cancelled"] }).notNull(),
 	...timestamps,
 });
+
+export const projects = pgTable("projects", {
+	id: uuid("id").defaultRandom().primaryKey(),
+	teamId: uuid("team_id").notNull(),
+	name: text("name").notNull(),
+	...timestamps,
+});
+
+export const teams = pgTable("teams", {
+	id: uuid("id").defaultRandom().primaryKey(),
+	name: text("name").notNull(),
+	...timestamps,
+});

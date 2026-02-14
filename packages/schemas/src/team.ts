@@ -10,6 +10,7 @@ export const CreateTeam = Team.omit({
     id: true,
     createdAt: true,
     updatedAt: true,
+    deletedAt: true,
 })
 
 export const GetTeam = Team.pick({
@@ -22,8 +23,10 @@ export const GetTeams = z.object({
 
 export const UpdateTeam = Team.omit({
     createdAt: true,
-    updatedAt: true
+    updatedAt: true,
+    deletedAt: true,
 }).partial().required({ id: true, })
 
-// TODO: Decide what deleted means? deletedAt timestamp?
-// const DeleteTeam = z.object({})
+export const DeleteTeam = Team.pick({
+    id: true
+})
