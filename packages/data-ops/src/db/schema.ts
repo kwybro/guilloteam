@@ -3,7 +3,7 @@ import { timestamps } from "./shared";
 
 export const tasks = pgTable("tasks", {
 	id: uuid("id").defaultRandom().primaryKey(),
-	projectId: uuid("project_id").notNull(),
+	projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "restrict" }),
 	title: text("title").notNull(),
 	status: text("status", { enum: ["open", "in_progress", "done", "cancelled"] }).notNull(),
 	...timestamps,
@@ -11,7 +11,7 @@ export const tasks = pgTable("tasks", {
 
 export const projects = pgTable("projects", {
 	id: uuid("id").defaultRandom().primaryKey(),
-	teamId: uuid("team_id").notNull(),
+	teamId: uuid("team_id").notNull().references(() => teams.id, { onDelete: "restrict" }),
 	name: text("name").notNull(),
 	...timestamps,
 });
@@ -21,3 +21,4 @@ export const teams = pgTable("teams", {
 	name: text("name").notNull(),
 	...timestamps,
 });
+
