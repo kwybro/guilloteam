@@ -2,8 +2,10 @@
 node_modules
 
 # Cloudflare
-local.sqlite
 .wrangler
 
 # Environment
 .env
+
+# Database
+local.db
