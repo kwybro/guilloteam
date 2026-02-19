@@ -1,55 +1,31 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import { projects, tasks, teams } from "./schema";
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-	throw new Error("Missing DATABASE_URL environment variable");
+const LIBSQL_URL = process.env.LIBSQL_URL;
+if (!LIBSQL_URL) {
+	throw new Error("Missing LIBSQL_URL environment variable");
 }
 
-const client = postgres(DATABASE_URL);
+const client = createClient({ url: LIBSQL_URL });
 const db = drizzle(client);
 
 const seedTeam = {
-	name: "The OG"
-}
-
-const seedProject = (teamId: string) => {
-	return {
-		teamId,
-		name: "Initial project"
-	}
-}
-
-const seedTasks = (projectId: string) => {
-	return [
-		{
-			projectId,
-			title: "Set up CI/CD pipeline",
-			status: "open" as const,
-		},
-		{
-			projectId,
-			title: "Write API documentation",
-			status: "in_progress" as const,
-		},
-		{
-			projectId,
-			title: "Design database schema",
-			status: "done" as const,
-		},
-		{
-			projectId,
-			title: "Create landing page",
-			status: "open" as const,
-		},
-		{
-			projectId,
-			title: "Fix login redirect bug",
-			status: "cancelled" as const,
-		},
-	];
+	name: "The OG",
 };
+
+const seedProject = (teamId: string) => ({
+	teamId,
+	name: "Initial project",
+});
+
+const seedTasks = (projectId: string) => [
+	{ projectId, title: "Set up CI/CD pipeline", status: "open" as const },
+	{ projectId, title: "Write API documentation", status: "in_progress" as const },
+	{ projectId, title: "Design database schema", status: "done" as const },
+	{ projectId, title: "Create landing page", status: "open" as const },
+	{ projectId, title: "Fix login redirect bug", status: "cancelled" as const },
+];
 
 console.log("Seeding a team, a project, and some tasks...");
 
@@ -69,5 +45,3 @@ console.log(`Seeded ${newProjects.length} projects:`);
 console.table(newProjects);
 console.log(`Seeded ${newTasks.length} tasks:`);
 console.table(newTasks);
-
-await client.end();

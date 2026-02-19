@@ -1,16 +1,14 @@
-import 'dotenv/config';
-import { defineConfig } from 'drizzle-kit';
+import { defineConfig } from "drizzle-kit";
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-    throw new Error("Missing DATABASE_URL environment variable")
-}
+const url = process.env.LIBSQL_URL;
+if (!url) throw new Error("Missing LIBSQL_URL");
 
 export default defineConfig({
-    out: './drizzle',
-    schema: './src/db/schema.ts',
-    dialect: 'postgresql',
-    dbCredentials: {
-        url: DATABASE_URL
-    }
+	out: "./drizzle",
+	schema: "./src/db/schema.ts",
+	dialect: "turso",
+	dbCredentials: {
+		url,
+		authToken: process.env.LIBSQL_AUTH_TOKEN,
+	},
 });

@@ -1,26 +1,12 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "sqlite",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1770774114070,
-      "tag": "0000_amusing_deathbird",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1771108872936,
-      "tag": "0001_lame_groot",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1771140433151,
-      "tag": "0002_fat_bucky",
+      "version": "6",
+      "when": 1771465546084,
+      "tag": "0000_smart_master_mold",
       "breakpoints": true
     }
   ]

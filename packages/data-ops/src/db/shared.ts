@@ -1,7 +1,8 @@
-import { timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { integer } from "drizzle-orm/sqlite-core";
 
 export const timestamps = {
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-    deletedAt: timestamp('deleted_at'),
-}
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+	deletedAt: integer("deleted_at", { mode: "timestamp" }),
+};

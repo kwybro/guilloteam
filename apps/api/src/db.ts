@@ -1,9 +1,7 @@
 import { createDb } from "@guilloteam/data-ops";
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-    throw new Error("Missing DATABASE_URL environment variable")
-}
-const db = createDb(DATABASE_URL);
+const url = process.env.LIBSQL_URL;
+if (!url) throw new Error("Missing LIBSQL_URL");
 
-export { db }
+const db = createDb(url, process.env.LIBSQL_AUTH_TOKEN);
+export { db };
