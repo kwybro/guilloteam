@@ -15,6 +15,13 @@
       "when": 1771640983442,
       "tag": "0001_nappy_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1771717147732,
+      "tag": "0002_lovely_grey_gargoyle",
+      "breakpoints": true
     }
   ]
 }

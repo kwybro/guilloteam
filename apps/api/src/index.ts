@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { auth } from "./auth";
+import { inviteRoutes } from "./routes/invites";
 import { projectRoutes } from "./routes/projects";
 import { taskRoutes } from "./routes/tasks";
 import { teamRoutes } from "./routes/teams";
@@ -9,6 +10,8 @@ const app = new Hono();
 app.on(["GET", "POST"], "/api/auth/**", (c) => {
 	return auth.handler(c.req.raw);
 });
+
+app.route("/", inviteRoutes);
 
 // Note: all routes internally are scoped to a team
 app.route("/teams", teamRoutes);
