@@ -1,6 +1,6 @@
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import { projects, tasks, teams } from "./schema";
+import { projects, tasks, teams } from "./schema/app";
 
 const LIBSQL_URL = process.env.LIBSQL_URL;
 if (!LIBSQL_URL) {

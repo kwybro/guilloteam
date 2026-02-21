@@ -1,9 +1,18 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { timestamps } from "./shared";
+import { timestamps } from "../shared";
+import { user } from './auth'
 
 export const teams = sqliteTable("teams", {
 	id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
 	name: text("name").notNull(),
+	...timestamps,
+});
+
+export const memberships = sqliteTable("memberships", {
+	id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+	userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	teamId: text("team_id").notNull().references(() => teams.id, { onDelete: "cascade" }),
+	role: text("role", { enum: ["owner", "member"] }).notNull().default("member"),
 	...timestamps,
 });
 

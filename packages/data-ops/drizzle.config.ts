@@ -5,7 +5,7 @@ if (!url) throw new Error("Missing LIBSQL_URL");
 
 export default defineConfig({
 	out: "./drizzle",
-	schema: "./src/db/schema.ts",
+	schema: "./src/db/schema",
 	dialect: "turso",
 	dbCredentials: {
 		url,

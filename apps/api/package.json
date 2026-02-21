@@ -14,9 +14,10 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "figlet": "^1.10.0",
-    "hono": "^4.11.9",
     "@guilloteam/data-ops": "workspace:*",
-    "@guilloteam/schemas": "workspace:*"
+    "@guilloteam/schemas": "workspace:*",
+    "better-auth": "^1.4.18",
+    "figlet": "^1.10.0",
+    "hono": "^4.11.9"
   }
 }
