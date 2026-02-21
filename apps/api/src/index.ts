@@ -9,8 +9,10 @@ const app = new Hono();
 app.on(["GET", "POST"], "/api/auth/**", (c) => {
 	return auth.handler(c.req.raw);
 });
-app.route("/tasks", taskRoutes);
-app.route("/projects", projectRoutes);
+
+// Note: all routes internally are scoped to a team
 app.route("/teams", teamRoutes);
+app.route("/teams", projectRoutes);
+app.route("/teams", taskRoutes);
 
 export default app;

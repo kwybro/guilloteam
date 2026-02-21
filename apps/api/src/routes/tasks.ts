@@ -1,4 +1,4 @@
-import { eq, isNull, tasks } from "@guilloteam/data-ops";
+import { and, eq, getTableColumns, inArray, isNull, projects, tasks } from "@guilloteam/data-ops";
 import {
 	CreateTask,
 	DeleteTask,
@@ -8,52 +8,81 @@ import {
 } from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
+import { authMiddleware, type Variables } from "../middleware/auth";
+import { userTeamIds } from "../utilities";
 
-const taskRoutes = new Hono();
+const taskRoutes = new Hono<{ Variables: Variables }>();
+taskRoutes.use(authMiddleware);
 
-// GET /tasks — list all tasks
-taskRoutes.get("/", async (c) => {
-	const result = await db.select().from(tasks).where(isNull(tasks.deletedAt));
+// GET /teams/:teamId/projects/:projectId/tasks
+taskRoutes.get("/:teamId/projects/:projectId/tasks", async (c) => {
+	const userId = c.get("userId");
+	const { projectId } = c.req.param();
+	const result = await db
+		.select(getTableColumns(tasks))
+		.from(tasks)
+		.innerJoin(projects, eq(projects.id, tasks.projectId))
+		.where(and(eq(tasks.projectId, projectId), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
 	return c.json(result);
 });
 
-// GET /tasks/:id — get a single task
-taskRoutes.get("/:id", async (c) => {
-	const { id } = c.req.param();
+// GET /teams/:teamId/projects/:projectId/tasks/:id
+taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", async (c) => {
+	const userId = c.get("userId");
+	const { projectId, id } = c.req.param();
 	const parsed = GetTask.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [task] = await db
-		.select()
+		.select(getTableColumns(tasks))
 		.from(tasks)
-		.where(eq(tasks.id, parsed.data.id));
+		.innerJoin(projects, eq(projects.id, tasks.projectId))
+		.where(and(eq(tasks.projectId, projectId), eq(tasks.id, parsed.data.id), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
 	if (!task) {
 		return c.json({ error: "Task not found" }, 404);
 	}
 	return c.json(task);
 });
 
-// POST /tasks — create a task
-taskRoutes.post("/", async (c) => {
+// POST /teams/:teamId/projects/:projectId/tasks
+taskRoutes.post("/:teamId/projects/:projectId/tasks", async (c) => {
+	const userId = c.get("userId");
+	const { projectId } = c.req.param();
 	const body = await c.req.json();
-	const parsed = CreateTask.safeParse(body);
+	const parsed = CreateTask.safeParse({ ...body, projectId });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
+	}
+	const [project] = await db
+		.select()
+		.from(projects)
+		.where(and(eq(projects.id, projectId), inArray(projects.teamId, userTeamIds(userId)), isNull(projects.deletedAt)));
+	if (!project) {
+		return c.json({ error: "Project not found" }, 404);
 	}
 	const [task] = await db.insert(tasks).values(parsed.data).returning();
 	return c.json(task, 201);
 });
 
-// PATCH /tasks/:id — update a task
-taskRoutes.patch("/:id", async (c) => {
-	const { id } = c.req.param();
+// PATCH /teams/:teamId/projects/:projectId/tasks/:id
+taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
+	const userId = c.get("userId");
+	const { projectId, id } = c.req.param();
 	const body = await c.req.json();
 	const parsed = UpdateTask.safeParse({ ...body, id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const { id: taskId, ...updates } = parsed.data;
+	const [existing] = await db
+		.select(getTableColumns(tasks))
+		.from(tasks)
+		.innerJoin(projects, eq(projects.id, tasks.projectId))
+		.where(and(eq(tasks.projectId, projectId), eq(tasks.id, taskId), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
+	if (!existing) {
+		return c.json({ error: "Task not found" }, 404);
+	}
 	const [task] = await db
 		.update(tasks)
 		.set({ ...updates, updatedAt: new Date() })
@@ -65,12 +94,21 @@ taskRoutes.patch("/:id", async (c) => {
 	return c.json(task);
 });
 
-// DELETE /tasks/:id — soft delete (sets deletedAt)
-taskRoutes.delete("/:id", async (c) => {
-	const { id } = c.req.param();
+// DELETE /teams/:teamId/projects/:projectId/tasks/:id
+taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
+	const userId = c.get("userId");
+	const { projectId, id } = c.req.param();
 	const parsed = DeleteTask.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
+	}
+	const [existing] = await db
+		.select(getTableColumns(tasks))
+		.from(tasks)
+		.innerJoin(projects, eq(projects.id, tasks.projectId))
+		.where(and(eq(tasks.projectId, projectId), eq(tasks.id, parsed.data.id), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
+	if (!existing) {
+		return c.json({ error: "Task not found" }, 404);
 	}
 	const [task] = await db
 		.update(tasks)
