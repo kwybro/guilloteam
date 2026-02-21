@@ -21,10 +21,6 @@ export const GetTask = Task.pick({
     id: true
 })
 
-export const GetTasks = z.object({
-    ids: z.uuid().array()
-})
-
 export const UpdateTask = Task.omit({
     createdAt: true,
     updatedAt: true,

@@ -18,10 +18,6 @@ export const GetProject = Project.pick({
     id: true
 })
 
-export const GetProjects = z.object({
-    ids: z.uuid().array()
-})
-
 export const UpdateProject = Project.omit({
     createdAt: true,
     updatedAt: true,
