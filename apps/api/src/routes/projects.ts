@@ -1,5 +1,6 @@
 import {
 	and,
+	count,
 	eq,
 	inArray,
 	isNull,
@@ -9,6 +10,7 @@ import {
 	ProjectSelect,
 	ProjectUpdate,
 	projects,
+	tasks,
 } from "@guilloteam/data-ops";
 import { flattenError } from "@guilloteam/schemas";
 import { Hono } from "hono";
@@ -58,7 +60,21 @@ projectRoutes.get("/:teamId/projects/:id", async (c) => {
 	if (!project) {
 		return c.json({ error: "Project not found" }, 404);
 	}
-	return c.json(ProjectSelect.parse(project));
+	const taskCounts = await db
+		.select({ status: tasks.status, count: count() })
+		.from(tasks)
+		.where(and(eq(tasks.projectId, parsed.data.id), isNull(tasks.deletedAt)))
+		.groupBy(tasks.status);
+	const taskStats: Record<"open" | "in_progress" | "executed" | "pardoned", number> = {
+		open: 0,
+		in_progress: 0,
+		executed: 0,
+		pardoned: 0,
+	};
+	for (const row of taskCounts) {
+		taskStats[row.status] = row.count;
+	}
+	return c.json({ ...ProjectSelect.parse(project), tasks: taskStats });
 });
 
 // POST /teams/:teamId/projects

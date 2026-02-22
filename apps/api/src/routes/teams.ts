@@ -9,6 +9,7 @@ import {
 	TeamSelect,
 	TeamUpdate,
 	teams,
+	user,
 } from "@guilloteam/data-ops";
 import { flattenError } from "@guilloteam/schemas";
 import { Hono } from "hono";
@@ -52,7 +53,16 @@ teamRoutes.get("/:id", async (c) => {
 	if (!team) {
 		return c.json({ error: "Team not found" }, 404);
 	}
-	return c.json(TeamSelect.parse(team));
+	const members = await db
+		.select({
+			userId: memberships.userId,
+			email: user.email,
+			role: memberships.role,
+		})
+		.from(memberships)
+		.innerJoin(user, eq(memberships.userId, user.id))
+		.where(eq(memberships.teamId, parsed.data.id));
+	return c.json({ ...TeamSelect.parse(team), members });
 });
 
 // POST /teams — create a team and make the creator an owner

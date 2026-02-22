@@ -3,7 +3,7 @@ export * from "./schemas";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 
-export { and, eq, getTableColumns, gt, inArray, isNull } from "drizzle-orm";
+export { and, count, eq, getTableColumns, gt, inArray, isNull } from "drizzle-orm";
 
 import * as appSchema from "./db/schema/app";
 import * as authSchema from "./db/schema/auth";

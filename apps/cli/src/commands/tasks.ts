@@ -27,6 +27,43 @@ const resolveContext = async (
 	return { teamId, projectId };
 };
 
+const getCommand = defineCommand({
+	meta: { name: "get", description: "Get a single task" },
+	args: {
+		id: { type: "positional", description: "Task ID", required: true },
+		team: { type: "string", description: "Team ID (overrides locked team)" },
+		project: { type: "string", description: "Project ID (overrides locked project)" },
+		pretty: {
+			type: "boolean",
+			description: "Human-readable output",
+			default: false,
+		},
+	},
+	async run({ args }) {
+		const { teamId, projectId } = await resolveContext(args.team, args.project);
+		const pretty = args.pretty || process.stdout.isTTY;
+
+		if (pretty) {
+			intro("Task");
+			const s = spinner();
+			s.start(randomLoadingMessage());
+			// TODO: task will gain description/context fields in a future update
+			const task = await apiFetch<TaskSelect>(
+				`/teams/${teamId}/projects/${projectId}/tasks/${args.id}`,
+			);
+			s.stop(task.title);
+			log.info(`ID:      ${task.id}`);
+			log.info(`Status:  ${task.status}`);
+			outro("Done");
+		} else {
+			const task = await apiFetch<TaskSelect>(
+				`/teams/${teamId}/projects/${projectId}/tasks/${args.id}`,
+			);
+			process.stdout.write(`${JSON.stringify(task)}\n`);
+		}
+	},
+});
+
 const listCommand = defineCommand({
 	meta: { name: "list", description: "List all tasks in the active project" },
 	args: {
@@ -201,6 +238,7 @@ export const tasksCommand = defineCommand({
 	meta: { name: "tasks", description: "Manage tasks" },
 	subCommands: {
 		list: listCommand,
+		get: getCommand,
 		create: createCommand,
 		update: updateCommand,
 		delete: deleteCommand,

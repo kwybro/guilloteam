@@ -1,7 +1,11 @@
 import { confirm, intro, isCancel, log, outro, spinner } from "@clack/prompts";
 import type { TeamSelect } from "@guilloteam/data-ops";
 import { defineCommand } from "citty";
-import { apiFetch, randomLoadingMessage } from "../utilities";
+import { apiFetch, randomLoadingMessage, readConfig } from "../utilities";
+
+type TeamWithMembers = TeamSelect & {
+	members: { userId: string; email: string; role: string }[];
+};
 
 const listCommand = defineCommand({
 	meta: { name: "list", description: "List all teams" },
@@ -66,6 +70,50 @@ const createCommand = defineCommand({
 	},
 });
 
+const getCommand = defineCommand({
+	meta: { name: "get", description: "Get a team with its members" },
+	args: {
+		id: {
+			type: "positional",
+			description: "Team ID (defaults to locked team)",
+			required: false,
+		},
+		pretty: {
+			type: "boolean",
+			description: "Human-readable output",
+			default: false,
+		},
+	},
+	async run({ args }) {
+		const config = await readConfig();
+		const teamId = args.id ?? config.teamId;
+		if (!teamId) {
+			process.stderr.write(
+				`${JSON.stringify({ error: "No team specified. Use guillo teams get <id> or: guillo lock team <id>" })}\n`,
+			);
+			process.exit(1);
+		}
+		const pretty = args.pretty || process.stdout.isTTY;
+
+		if (pretty) {
+			intro("Team");
+			const s = spinner();
+			s.start(randomLoadingMessage());
+			const team = await apiFetch<TeamWithMembers>(`/teams/${teamId}`);
+			s.stop(team.name);
+			log.info(`ID: ${team.id}`);
+			log.info(`Members (${team.members.length}):`);
+			for (const m of team.members) {
+				log.info(`  ${m.role.padEnd(8)}  ${m.email}  ${m.userId}`);
+			}
+			outro("Done");
+		} else {
+			const team = await apiFetch<TeamWithMembers>(`/teams/${teamId}`);
+			process.stdout.write(`${JSON.stringify(team)}\n`);
+		}
+	},
+});
+
 const deleteCommand = defineCommand({
 	meta: { name: "delete", description: "Delete a team" },
 	args: {
@@ -94,6 +142,7 @@ export const teamsCommand = defineCommand({
 	meta: { name: "teams", description: "Manage teams" },
 	subCommands: {
 		list: listCommand,
+		get: getCommand,
 		create: createCommand,
 		delete: deleteCommand,
 	},
