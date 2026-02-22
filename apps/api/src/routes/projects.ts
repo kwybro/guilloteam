@@ -1,11 +1,16 @@
-import { and, eq, inArray, isNull, memberships, projects } from "@guilloteam/data-ops";
 import {
-	CreateProject,
-	DeleteProject,
-	flattenError,
-	GetProject,
-	UpdateProject,
-} from "@guilloteam/schemas";
+	and,
+	eq,
+	inArray,
+	isNull,
+	memberships,
+	ProjectId,
+	ProjectInsert,
+	ProjectSelect,
+	ProjectUpdate,
+	projects,
+} from "@guilloteam/data-ops";
+import { flattenError } from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
@@ -21,26 +26,39 @@ projectRoutes.get("/:teamId/projects", async (c) => {
 	const result = await db
 		.select()
 		.from(projects)
-		.where(and(eq(projects.teamId, teamId), inArray(projects.teamId, userTeamIds(userId)), isNull(projects.deletedAt)));
-	return c.json(result);
+		.where(
+			and(
+				eq(projects.teamId, teamId),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(projects.deletedAt),
+			),
+		);
+	return c.json(ProjectSelect.array().parse(result));
 });
 
 // GET /teams/:teamId/projects/:id
 projectRoutes.get("/:teamId/projects/:id", async (c) => {
 	const userId = c.get("userId");
 	const { teamId, id } = c.req.param();
-	const parsed = GetProject.safeParse({ id });
+	const parsed = ProjectId.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [project] = await db
 		.select()
 		.from(projects)
-		.where(and(eq(projects.teamId, teamId), eq(projects.id, parsed.data.id), inArray(projects.teamId, userTeamIds(userId)), isNull(projects.deletedAt)));
+		.where(
+			and(
+				eq(projects.teamId, teamId),
+				eq(projects.id, parsed.data.id),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(projects.deletedAt),
+			),
+		);
 	if (!project) {
 		return c.json({ error: "Project not found" }, 404);
 	}
-	return c.json(project);
+	return c.json(ProjectSelect.parse(project));
 });
 
 // POST /teams/:teamId/projects
@@ -48,7 +66,7 @@ projectRoutes.post("/:teamId/projects", async (c) => {
 	const userId = c.get("userId");
 	const { teamId } = c.req.param();
 	const body = await c.req.json();
-	const parsed = CreateProject.safeParse({ ...body, teamId });
+	const parsed = ProjectInsert.safeParse({ ...body, teamId });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
@@ -60,7 +78,10 @@ projectRoutes.post("/:teamId/projects", async (c) => {
 		return c.json({ error: "Team not found" }, 404);
 	}
 	const [project] = await db.insert(projects).values(parsed.data).returning();
-	return c.json(project, 201);
+	if (!project) {
+		return c.json({ error: "Could not create Project" }, 500);
+	}
+	return c.json(ProjectSelect.parse(project), 201);
 });
 
 // PATCH /teams/:teamId/projects/:id
@@ -68,7 +89,7 @@ projectRoutes.patch("/:teamId/projects/:id", async (c) => {
 	const userId = c.get("userId");
 	const { teamId, id } = c.req.param();
 	const body = await c.req.json();
-	const parsed = UpdateProject.safeParse({ ...body, id });
+	const parsed = ProjectUpdate.safeParse({ ...body, id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
@@ -76,7 +97,14 @@ projectRoutes.patch("/:teamId/projects/:id", async (c) => {
 	const [existing] = await db
 		.select()
 		.from(projects)
-		.where(and(eq(projects.teamId, teamId), eq(projects.id, projectId), inArray(projects.teamId, userTeamIds(userId)), isNull(projects.deletedAt)));
+		.where(
+			and(
+				eq(projects.teamId, teamId),
+				eq(projects.id, projectId),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(projects.deletedAt),
+			),
+		);
 	if (!existing) {
 		return c.json({ error: "Project not found" }, 404);
 	}
@@ -88,21 +116,28 @@ projectRoutes.patch("/:teamId/projects/:id", async (c) => {
 	if (!project) {
 		return c.json({ error: "Project not found" }, 404);
 	}
-	return c.json(project);
+	return c.json(ProjectSelect.parse(project));
 });
 
 // DELETE /teams/:teamId/projects/:id
 projectRoutes.delete("/:teamId/projects/:id", async (c) => {
 	const userId = c.get("userId");
 	const { teamId, id } = c.req.param();
-	const parsed = DeleteProject.safeParse({ id });
+	const parsed = ProjectId.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [existing] = await db
 		.select()
 		.from(projects)
-		.where(and(eq(projects.teamId, teamId), eq(projects.id, parsed.data.id), inArray(projects.teamId, userTeamIds(userId)), isNull(projects.deletedAt)));
+		.where(
+			and(
+				eq(projects.teamId, teamId),
+				eq(projects.id, parsed.data.id),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(projects.deletedAt),
+			),
+		);
 	if (!existing) {
 		return c.json({ error: "Project not found" }, 404);
 	}
@@ -114,7 +149,7 @@ projectRoutes.delete("/:teamId/projects/:id", async (c) => {
 	if (!project) {
 		return c.json({ error: "Project not found" }, 404);
 	}
-	return c.json(project);
+	return c.json(ProjectSelect.parse(project));
 });
 
 export { projectRoutes };

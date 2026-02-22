@@ -1,11 +1,17 @@
-import { and, eq, getTableColumns, inArray, isNull, projects, tasks } from "@guilloteam/data-ops";
 import {
-	CreateTask,
-	DeleteTask,
-	flattenError,
-	GetTask,
-	UpdateTask,
-} from "@guilloteam/schemas";
+	and,
+	eq,
+	getTableColumns,
+	inArray,
+	isNull,
+	projects,
+	TaskId,
+	TaskInsert,
+	TaskSelect,
+	TaskUpdate,
+	tasks,
+} from "@guilloteam/data-ops";
+import { flattenError } from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
@@ -22,15 +28,21 @@ taskRoutes.get("/:teamId/projects/:projectId/tasks", async (c) => {
 		.select(getTableColumns(tasks))
 		.from(tasks)
 		.innerJoin(projects, eq(projects.id, tasks.projectId))
-		.where(and(eq(tasks.projectId, projectId), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
-	return c.json(result);
+		.where(
+			and(
+				eq(tasks.projectId, projectId),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(tasks.deletedAt),
+			),
+		);
+	return c.json(TaskSelect.array().parse(result));
 });
 
 // GET /teams/:teamId/projects/:projectId/tasks/:id
 taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	const userId = c.get("userId");
 	const { projectId, id } = c.req.param();
-	const parsed = GetTask.safeParse({ id });
+	const parsed = TaskId.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
@@ -38,11 +50,18 @@ taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 		.select(getTableColumns(tasks))
 		.from(tasks)
 		.innerJoin(projects, eq(projects.id, tasks.projectId))
-		.where(and(eq(tasks.projectId, projectId), eq(tasks.id, parsed.data.id), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
+		.where(
+			and(
+				eq(tasks.projectId, projectId),
+				eq(tasks.id, parsed.data.id),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(tasks.deletedAt),
+			),
+		);
 	if (!task) {
 		return c.json({ error: "Task not found" }, 404);
 	}
-	return c.json(task);
+	return c.json(TaskSelect.parse(task));
 });
 
 // POST /teams/:teamId/projects/:projectId/tasks
@@ -50,19 +69,28 @@ taskRoutes.post("/:teamId/projects/:projectId/tasks", async (c) => {
 	const userId = c.get("userId");
 	const { projectId } = c.req.param();
 	const body = await c.req.json();
-	const parsed = CreateTask.safeParse({ ...body, projectId });
+	const parsed = TaskInsert.safeParse({ ...body, projectId });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [project] = await db
 		.select()
 		.from(projects)
-		.where(and(eq(projects.id, projectId), inArray(projects.teamId, userTeamIds(userId)), isNull(projects.deletedAt)));
+		.where(
+			and(
+				eq(projects.id, projectId),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(projects.deletedAt),
+			),
+		);
 	if (!project) {
 		return c.json({ error: "Project not found" }, 404);
 	}
 	const [task] = await db.insert(tasks).values(parsed.data).returning();
-	return c.json(task, 201);
+	if (!task) {
+		return c.json({ error: "Could not create Task" }, 500);
+	}
+	return c.json(TaskSelect.parse(task), 201);
 });
 
 // PATCH /teams/:teamId/projects/:projectId/tasks/:id
@@ -70,7 +98,7 @@ taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	const userId = c.get("userId");
 	const { projectId, id } = c.req.param();
 	const body = await c.req.json();
-	const parsed = UpdateTask.safeParse({ ...body, id });
+	const parsed = TaskUpdate.safeParse({ ...body, id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
@@ -79,7 +107,14 @@ taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 		.select(getTableColumns(tasks))
 		.from(tasks)
 		.innerJoin(projects, eq(projects.id, tasks.projectId))
-		.where(and(eq(tasks.projectId, projectId), eq(tasks.id, taskId), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
+		.where(
+			and(
+				eq(tasks.projectId, projectId),
+				eq(tasks.id, taskId),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(tasks.deletedAt),
+			),
+		);
 	if (!existing) {
 		return c.json({ error: "Task not found" }, 404);
 	}
@@ -91,14 +126,14 @@ taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	if (!task) {
 		return c.json({ error: "Task not found" }, 404);
 	}
-	return c.json(task);
+	return c.json(TaskSelect.parse(task));
 });
 
 // DELETE /teams/:teamId/projects/:projectId/tasks/:id
 taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	const userId = c.get("userId");
 	const { projectId, id } = c.req.param();
-	const parsed = DeleteTask.safeParse({ id });
+	const parsed = TaskId.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
@@ -106,7 +141,14 @@ taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 		.select(getTableColumns(tasks))
 		.from(tasks)
 		.innerJoin(projects, eq(projects.id, tasks.projectId))
-		.where(and(eq(tasks.projectId, projectId), eq(tasks.id, parsed.data.id), inArray(projects.teamId, userTeamIds(userId)), isNull(tasks.deletedAt)));
+		.where(
+			and(
+				eq(tasks.projectId, projectId),
+				eq(tasks.id, parsed.data.id),
+				inArray(projects.teamId, userTeamIds(userId)),
+				isNull(tasks.deletedAt),
+			),
+		);
 	if (!existing) {
 		return c.json({ error: "Task not found" }, 404);
 	}
@@ -118,7 +160,7 @@ taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	if (!task) {
 		return c.json({ error: "Task not found" }, 404);
 	}
-	return c.json(task);
+	return c.json(TaskSelect.parse(task));
 });
 
 export { taskRoutes };

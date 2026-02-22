@@ -1,5 +1,18 @@
-import { and, eq, gt, invites, isNull, memberships, teams, user } from "@guilloteam/data-ops";
-import { CreateInvite, flattenError } from "@guilloteam/schemas";
+import {
+	and,
+	eq,
+	gt,
+	InviteCreate,
+	InviteId,
+	InviteSelect,
+	invites,
+	isNull,
+	memberships,
+	TeamSelect,
+	teams,
+	user,
+} from "@guilloteam/data-ops";
+import { flattenError } from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
@@ -18,7 +31,7 @@ inviteRoutes.post("/teams/:teamId/invites", async (c) => {
 	}
 
 	const body = await c.req.json();
-	const parsed = CreateInvite.safeParse(body);
+	const parsed = InviteCreate.safeParse(body);
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
@@ -27,7 +40,9 @@ inviteRoutes.post("/teams/:teamId/invites", async (c) => {
 	const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
 	// Re-summoning the same email replaces the existing invite
-	await db.delete(invites).where(and(eq(invites.email, email), eq(invites.teamId, teamId)));
+	await db
+		.delete(invites)
+		.where(and(eq(invites.email, email), eq(invites.teamId, teamId)));
 
 	const [invite] = await db
 		.insert(invites)
@@ -56,9 +71,15 @@ inviteRoutes.get("/teams/:teamId/invites", async (c) => {
 	const pending = await db
 		.select()
 		.from(invites)
-		.where(and(eq(invites.teamId, teamId), isNull(invites.acceptedAt), gt(invites.expiresAt, now)));
+		.where(
+			and(
+				eq(invites.teamId, teamId),
+				isNull(invites.acceptedAt),
+				gt(invites.expiresAt, now),
+			),
+		);
 
-	return c.json(pending);
+	return c.json(InviteSelect.array().parse(pending));
 });
 
 // DELETE /teams/:teamId/invites/:id — revoke an invite (owner only)
@@ -70,16 +91,21 @@ inviteRoutes.delete("/teams/:teamId/invites/:id", async (c) => {
 		return c.json({ error: "Not authorized" }, 403);
 	}
 
+	const parsed = InviteId.safeParse({ id });
+	if (!parsed.success) {
+		return c.json({ error: flattenError(parsed.error) }, 400);
+	}
+
 	const [deleted] = await db
 		.delete(invites)
-		.where(and(eq(invites.id, id), eq(invites.teamId, teamId)))
+		.where(and(eq(invites.id, parsed.data.id), eq(invites.teamId, teamId)))
 		.returning();
 
 	if (!deleted) {
 		return c.json({ error: "Invite not found" }, 404);
 	}
 
-	return c.json(deleted);
+	return c.json(InviteSelect.parse(deleted));
 });
 
 // POST /invites/:token/accept — accept a summon
@@ -109,12 +135,23 @@ inviteRoutes.post("/invites/:token/accept", async (c) => {
 		return c.json({ error: "Invite expired" }, 410);
 	}
 
-	await db.insert(memberships).values({ userId, teamId: invite.teamId, role: "member" });
-	await db.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.id, invite.id));
+	await db
+		.insert(memberships)
+		.values({ userId, teamId: invite.teamId, role: "member" });
+	await db
+		.update(invites)
+		.set({ acceptedAt: new Date() })
+		.where(eq(invites.id, invite.id));
 
 	// Return the team so the CLI can auto-lock if the user has no active context
-	const [team] = await db.select().from(teams).where(eq(teams.id, invite.teamId));
-	return c.json(team);
+	const [team] = await db
+		.select()
+		.from(teams)
+		.where(eq(teams.id, invite.teamId));
+	if (!team) {
+		return c.json({ error: "Team not found" }, 404);
+	}
+	return c.json(TeamSelect.parse(team));
 });
 
 export { inviteRoutes };

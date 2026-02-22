@@ -1,11 +1,16 @@
-import { and, eq, inArray, isNull, memberships, teams } from "@guilloteam/data-ops";
 import {
-	CreateTeam,
-	DeleteTeam,
-	flattenError,
-	GetTeam,
-	UpdateTeam,
-} from "@guilloteam/schemas";
+	and,
+	eq,
+	inArray,
+	isNull,
+	memberships,
+	TeamId,
+	TeamInsert,
+	TeamSelect,
+	TeamUpdate,
+	teams,
+} from "@guilloteam/data-ops";
+import { flattenError } from "@guilloteam/schemas";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
@@ -20,42 +25,52 @@ teamRoutes.get("/", async (c) => {
 	const result = await db
 		.select()
 		.from(teams)
-		.where(and(inArray(teams.id, userTeamIds(userId)), isNull(teams.deletedAt)));
-	return c.json(result);
+		.where(
+			and(inArray(teams.id, userTeamIds(userId)), isNull(teams.deletedAt)),
+		);
+	return c.json(TeamSelect.array().parse(result));
 });
 
 // GET /teams/:id — get a single team
 teamRoutes.get("/:id", async (c) => {
 	const { id } = c.req.param();
 	const userId = c.get("userId");
-	const parsed = GetTeam.safeParse({ id });
+	const parsed = TeamId.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [team] = await db
 		.select()
 		.from(teams)
-		.where(and(inArray(teams.id, userTeamIds(userId)), eq(teams.id, parsed.data.id), isNull(teams.deletedAt)));
+		.where(
+			and(
+				inArray(teams.id, userTeamIds(userId)),
+				eq(teams.id, parsed.data.id),
+				isNull(teams.deletedAt),
+			),
+		);
 	if (!team) {
 		return c.json({ error: "Team not found" }, 404);
 	}
-	return c.json(team);
+	return c.json(TeamSelect.parse(team));
 });
 
 // POST /teams — create a team and make the creator an owner
 teamRoutes.post("/", async (c) => {
 	const userId = c.get("userId");
 	const body = await c.req.json();
-	const parsed = CreateTeam.safeParse(body);
+	const parsed = TeamInsert.safeParse(body);
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [team] = await db.insert(teams).values(parsed.data).returning();
 	if (!team) {
-		return c.json({ error: "Could not create Team" }, 500)
+		return c.json({ error: "Could not create Team" }, 500);
 	}
-	await db.insert(memberships).values({ userId, teamId: team.id, role: "owner" });
-	return c.json(team, 201);
+	await db
+		.insert(memberships)
+		.values({ userId, teamId: team.id, role: "owner" });
+	return c.json(TeamSelect.parse(team), 201);
 });
 
 // PATCH /teams/:id — update a team (members only)
@@ -63,14 +78,19 @@ teamRoutes.patch("/:id", async (c) => {
 	const { id } = c.req.param();
 	const userId = c.get("userId");
 	const body = await c.req.json();
-	const parsed = UpdateTeam.safeParse({ ...body, id });
+	const parsed = TeamUpdate.safeParse({ ...body, id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [membership] = await db
 		.select()
 		.from(memberships)
-		.where(and(eq(memberships.teamId, parsed.data.id), eq(memberships.userId, userId)));
+		.where(
+			and(
+				eq(memberships.teamId, parsed.data.id),
+				eq(memberships.userId, userId),
+			),
+		);
 	if (!membership) {
 		return c.json({ error: "Team not found" }, 404);
 	}
@@ -83,21 +103,27 @@ teamRoutes.patch("/:id", async (c) => {
 	if (!team) {
 		return c.json({ error: "Team not found" }, 404);
 	}
-	return c.json(team);
+	return c.json(TeamSelect.parse(team));
 });
 
 // DELETE /teams/:id — soft delete (owners only)
 teamRoutes.delete("/:id", async (c) => {
 	const { id } = c.req.param();
 	const userId = c.get("userId");
-	const parsed = DeleteTeam.safeParse({ id });
+	const parsed = TeamId.safeParse({ id });
 	if (!parsed.success) {
 		return c.json({ error: flattenError(parsed.error) }, 400);
 	}
 	const [membership] = await db
 		.select()
 		.from(memberships)
-		.where(and(eq(memberships.teamId, parsed.data.id), eq(memberships.userId, userId), eq(memberships.role, "owner")));
+		.where(
+			and(
+				eq(memberships.teamId, parsed.data.id),
+				eq(memberships.userId, userId),
+				eq(memberships.role, "owner"),
+			),
+		);
 	if (!membership) {
 		return c.json({ error: "Team not found" }, 404);
 	}
@@ -109,7 +135,7 @@ teamRoutes.delete("/:id", async (c) => {
 	if (!team) {
 		return c.json({ error: "Team not found" }, 404);
 	}
-	return c.json(team);
+	return c.json(TeamSelect.parse(team));
 });
 
 export { teamRoutes };
