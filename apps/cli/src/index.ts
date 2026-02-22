@@ -8,6 +8,10 @@ const main = defineCommand({
 		description: "The guilloteam CLI"
 	},
 	subCommands: {
+		auth: () => import('./commands/auth').then(m => m.authCommand),
+		config: () => import('./commands/config').then(m => m.configCommand),
+		lock: () => import('./commands/lock').then(m => m.lockCommand),
+		unlock: () => import('./commands/lock').then(m => m.unlockCommand),
 		teams: () => import('./commands/teams').then(m => m.teamsCommand),
 		projects: () => import('./commands/projects').then(m => m.projectsCommand),
 		tasks: () => import('./commands/tasks').then(m => m.tasksCommand),

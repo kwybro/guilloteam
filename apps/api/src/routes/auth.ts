@@ -1,9 +1,12 @@
+import { eq, user } from "@guilloteam/data-ops";
 import { APIError } from "better-auth/api";
 import { Hono } from "hono";
 import { z } from "zod";
 import { auth } from "../auth";
+import { db } from "../db";
+import { authMiddleware, type Variables } from "../middleware/auth";
 
-const authRoutes = new Hono();
+const authRoutes = new Hono<{ Variables: Variables }>();
 
 const SendOtpBody = z.object({ email: z.email() });
 const VerifyOtpBody = z.object({ email: z.email(), otp: z.string().min(1) });
@@ -74,6 +77,17 @@ authRoutes.post("/verify-otp", async (c) => {
 		}
 		return c.json({ error: "Failed to create API key" }, 500);
 	}
+});
+
+// GET /auth/me — validate the caller's API key and return their identity
+authRoutes.use("/me", authMiddleware);
+authRoutes.get("/me", async (c) => {
+	const userId = c.get("userId");
+	const [currentUser] = await db.select().from(user).where(eq(user.id, userId));
+	if (!currentUser) {
+		return c.json({ error: "User not found" }, 404);
+	}
+	return c.json({ email: currentUser.email, userId: currentUser.id });
 });
 
 export { authRoutes };

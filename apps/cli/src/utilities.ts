@@ -37,6 +37,8 @@ export type Config = {
 	token: string | undefined;
 	teamId: string | undefined;
 	projectId: string | undefined;
+	userEmail: string | undefined;
+	userId: string | undefined;
 };
 
 export const readConfig = async (): Promise<Config> => {
@@ -46,15 +48,17 @@ export const readConfig = async (): Promise<Config> => {
 	if (await file.exists()) {
 		Object.assign(fileEnv, parseEnvFile(await file.text()));
 	}
+	// Use || undefined so that empty string (written by lock/unlock clear operations) is treated as unset
 	return {
 		apiUrl:
 			process.env.GUILLOTEAM_API_URL ??
 			fileEnv.GUILLOTEAM_API_URL ??
 			DEFAULT_API_URL,
-		token: process.env.GUILLOTEAM_TOKEN ?? fileEnv.GUILLOTEAM_TOKEN,
-		teamId: process.env.GUILLOTEAM_TEAM_ID ?? fileEnv.GUILLOTEAM_TEAM_ID,
-		projectId:
-			process.env.GUILLOTEAM_PROJECT_ID ?? fileEnv.GUILLOTEAM_PROJECT_ID,
+		token: process.env.GUILLOTEAM_TOKEN || fileEnv.GUILLOTEAM_TOKEN || undefined,
+		teamId: process.env.GUILLOTEAM_TEAM_ID || fileEnv.GUILLOTEAM_TEAM_ID || undefined,
+		projectId: process.env.GUILLOTEAM_PROJECT_ID || fileEnv.GUILLOTEAM_PROJECT_ID || undefined,
+		userEmail: process.env.GUILLOTEAM_USER_EMAIL || fileEnv.GUILLOTEAM_USER_EMAIL || undefined,
+		userId: process.env.GUILLOTEAM_USER_ID || fileEnv.GUILLOTEAM_USER_ID || undefined,
 	};
 };
 

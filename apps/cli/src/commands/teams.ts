@@ -1,19 +1,7 @@
 import { intro, log, outro, spinner } from "@clack/prompts";
+import type { TeamSelect } from "@guilloteam/data-ops";
 import { defineCommand } from "citty";
-
-export type Team = {
-	id: string;
-	name: string;
-	createdAt: string;
-	updatedAt: string;
-	deletedAt: string | null;
-};
-
-export const listTeams = async (baseUrl: string): Promise<Team[]> => {
-	const res = await fetch(`${baseUrl}/teams`);
-	if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-	return res.json() as Promise<Team[]>;
-};
+import { apiFetch, randomLoadingMessage } from "../utilities";
 
 const listCommand = defineCommand({
 	meta: { name: "list", description: "List all teams" },
@@ -25,21 +13,20 @@ const listCommand = defineCommand({
 		},
 	},
 	async run({ args }) {
-		const baseUrl = process.env.GUILLOTEAM_API_URL ?? "http://localhost:3000";
 		const pretty = args.pretty || process.stdout.isTTY;
 
 		if (pretty) {
 			intro("Teams");
 			const s = spinner();
-			s.start("Fetching teams...");
-			const teams = await listTeams(baseUrl);
+			s.start(randomLoadingMessage());
+			const teams = await apiFetch<TeamSelect[]>("/teams");
 			s.stop(`Found ${teams.length} team(s)`);
 			for (const team of teams) {
 				log.info(`${team.name}  ${team.id}`);
 			}
 			outro("Done");
 		} else {
-			const teams = await listTeams(baseUrl);
+			const teams = await apiFetch<TeamSelect[]>("/teams");
 			process.stdout.write(`${JSON.stringify(teams)}\n`);
 		}
 	},
