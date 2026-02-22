@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { auth } from "./auth";
+import { authRoutes } from "./routes/auth";
 import { inviteRoutes } from "./routes/invites";
 import { projectRoutes } from "./routes/projects";
 import { taskRoutes } from "./routes/tasks";
@@ -10,6 +11,10 @@ const app = new Hono();
 app.on(["GET", "POST"], "/api/auth/**", (c) => {
 	return auth.handler(c.req.raw);
 });
+
+// Light wrapper around some better-auth server
+// functions tailor made for the CLI.
+app.route("/auth", authRoutes);
 
 app.route("/", inviteRoutes);
 
