@@ -49,6 +49,7 @@ authRoutes.post("/verify-otp", async (c) => {
 	try {
 		const session = await auth.api.signInEmailOTP({
 			body: { email: parsed.data.email, otp: parsed.data.otp },
+			headers: c.req.raw.headers,
 		});
 		if (!session.token) {
 			return c.json({ error: "Authentication failed" }, 401);
@@ -65,9 +66,11 @@ authRoutes.post("/verify-otp", async (c) => {
 	}
 
 	try {
+		const keyHeaders = new Headers(c.req.raw.headers);
+		keyHeaders.set("Authorization", `Bearer ${sessionToken}`);
 		const apiKey = await auth.api.createApiKey({
 			body: { name: "CLI" },
-			headers: { Authorization: `Bearer ${sessionToken}` },
+			headers: keyHeaders,
 		});
 		return c.json({ token: apiKey.key, email: userEmail, userId }, 201);
 	} catch (err) {

@@ -1,7 +1,7 @@
 import * as authSchema from "@guilloteam/data-ops";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { apiKey, emailOTP } from "better-auth/plugins";
+import { apiKey, bearer, emailOTP } from "better-auth/plugins";
 import { db } from "./db";
 
 export const auth = betterAuth({
@@ -10,6 +10,7 @@ export const auth = betterAuth({
 		schema: authSchema,
 	}),
 	plugins: [
+		bearer(),
 		emailOTP({
 			async sendVerificationOTP({ email, otp }) {
 				// TODO: Hook in email provider
