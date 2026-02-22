@@ -1,7 +1,7 @@
+import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { timestamps } from "../shared";
 import { user } from "./auth";
-import { sql } from "drizzle-orm";
 
 export const teams = sqliteTable("teams", {
 	id: text("id")

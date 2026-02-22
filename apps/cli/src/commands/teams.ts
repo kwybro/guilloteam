@@ -1,4 +1,4 @@
-import { intro, log, outro, spinner } from "@clack/prompts";
+import { confirm, intro, isCancel, log, outro, spinner } from "@clack/prompts";
 import type { TeamSelect } from "@guilloteam/data-ops";
 import { defineCommand } from "citty";
 import { apiFetch, randomLoadingMessage } from "../utilities";
@@ -32,9 +32,69 @@ const listCommand = defineCommand({
 	},
 });
 
+const createCommand = defineCommand({
+	meta: { name: "create", description: "Create a new team" },
+	args: {
+		name: { type: "positional", description: "Team name", required: true },
+		pretty: {
+			type: "boolean",
+			description: "Human-readable output",
+			default: false,
+		},
+	},
+	async run({ args }) {
+		const pretty = args.pretty || process.stdout.isTTY;
+
+		if (pretty) {
+			intro("Create team");
+			const s = spinner();
+			s.start(randomLoadingMessage());
+			const team = await apiFetch<TeamSelect>("/teams", {
+				method: "POST",
+				body: JSON.stringify({ name: args.name }),
+			});
+			s.stop(`Created "${team.name}"`);
+			log.info(`ID: ${team.id}`);
+			outro("Done");
+		} else {
+			const team = await apiFetch<TeamSelect>("/teams", {
+				method: "POST",
+				body: JSON.stringify({ name: args.name }),
+			});
+			process.stdout.write(`${JSON.stringify(team)}\n`);
+		}
+	},
+});
+
+const deleteCommand = defineCommand({
+	meta: { name: "delete", description: "Delete a team" },
+	args: {
+		id: { type: "positional", description: "Team ID", required: true },
+	},
+	async run({ args }) {
+		if (process.stdout.isTTY) {
+			const confirmed = await confirm({ message: `Delete team ${args.id}?` });
+			if (isCancel(confirmed) || !confirmed) {
+				outro("Cancelled");
+				process.exit(0);
+			}
+			const s = spinner();
+			s.start(randomLoadingMessage());
+			await apiFetch<TeamSelect>(`/teams/${args.id}`, { method: "DELETE" });
+			s.stop("Deleted");
+			outro("Done");
+		} else {
+			const team = await apiFetch<TeamSelect>(`/teams/${args.id}`, { method: "DELETE" });
+			process.stdout.write(`${JSON.stringify(team)}\n`);
+		}
+	},
+});
+
 export const teamsCommand = defineCommand({
 	meta: { name: "teams", description: "Manage teams" },
 	subCommands: {
 		list: listCommand,
+		create: createCommand,
+		delete: deleteCommand,
 	},
 });
