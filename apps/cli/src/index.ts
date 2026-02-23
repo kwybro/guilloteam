@@ -15,6 +15,9 @@ const main = defineCommand({
 		teams: () => import('./commands/teams').then(m => m.teamsCommand),
 		projects: () => import('./commands/projects').then(m => m.projectsCommand),
 		tasks: () => import('./commands/tasks').then(m => m.tasksCommand),
+		summon: () => import('./commands/summon').then(m => m.summonCommand),
+		team: () => import('./commands/team').then(m => m.teamCommand),
+		execute: () => import('./commands/execute').then(m => m.executeCommand),
 	}
 })
 
