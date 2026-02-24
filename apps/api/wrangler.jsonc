@@ -1,0 +1,38 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "guilloteam-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-11-01",
+	// Required for @libsql/client and better-auth (use node:* builtins)
+	"compatibility_flags": ["nodejs_compat"],
+
+	"observability": {
+		"logs": {
+			"enabled": false,
+			"invocation_logs": true
+		}
+	},
+
+	// Production vars (non-sensitive). Secrets set via `wrangler secret put <KEY>`:
+	//   LIBSQL_URL, LIBSQL_AUTH_TOKEN, BETTER_AUTH_SECRET
+	"vars": {
+		"BETTER_AUTH_URL": "https://api.guillo.team"
+	},
+	"routes": [
+		{ "pattern": "api.guillo.team", "custom_domain": true }
+	],
+
+	"env": {
+		"dev": {
+			"name": "guilloteam-api-dev",
+			// Dev secrets set via `wrangler secret put <KEY> --env dev`:
+			//   LIBSQL_URL, LIBSQL_AUTH_TOKEN, BETTER_AUTH_SECRET
+			"vars": {
+				"BETTER_AUTH_URL": "https://dev.api.guillo.team"
+			},
+			"routes": [
+				{ "pattern": "dev.api.guillo.team", "custom_domain": true }
+			],
+		}
+	}
+}

@@ -4,11 +4,14 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --hot ./src/index.ts"
+    "dev": "bun run --hot ./src/index.ts",
+    "deploy": "wrangler deploy",
+    "deploy:dev": "wrangler deploy --env dev"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/figlet": "^1.7.0"
+    "@types/figlet": "^1.7.0",
+    "wrangler": "^4.68.0"
   },
   "peerDependencies": {
     "typescript": "^5"
