@@ -1,0 +1,13 @@
+---
+title: guillo lock
+description: Pin a working context so you don't pass IDs on every command.
+---
+
+```sh
+guillo lock                    # show current context
+guillo lock team <team-id>     # set active team (clears active project)
+guillo lock project <id>       # set active project (implicitly sets team)
+guillo unlock                  # clear all context
+```
+
+Context is stored in `~/.guilloteam/.env` and can be overridden per-command with `--team` and `--project` flags.

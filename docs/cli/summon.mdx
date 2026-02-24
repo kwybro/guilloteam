@@ -1,0 +1,16 @@
+---
+title: guillo summon
+description: Invite teammates.
+---
+
+```sh
+guillo summon <email>                   # invite to locked team
+guillo summon <email> --team <team-id>  # invite to a specific team
+
+guillo team invites                     # list pending invites (owner only)
+guillo team invites revoke <invite-id>  # revoke an invite
+
+guillo team join <token>                # accept an invite
+```
+
+Invite tokens expire after 7 days. Re-summoning the same email replaces the existing invite.

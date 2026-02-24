@@ -1,0 +1,14 @@
+---
+title: Self-Hosting
+description: Run guilloteam on your own infrastructure.
+---
+
+<Note>Self-hosting documentation is coming soon.</Note>
+
+guilloteam is designed to be self-hostable. The API is a standard Hono app that runs anywhere Bun or Node.js runs, and the database is libSQL-compatible (Turso or self-hosted `sqld`).
+
+Point the CLI at your instance:
+
+```sh
+guillo config set api-url https://your-instance.com
+```

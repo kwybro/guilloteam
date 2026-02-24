@@ -1,0 +1,39 @@
+---
+title: Introduction
+description: guilloteam is a terminal-native task management tool built for dev teams.
+---
+
+**guilloteam** gives your team a shared workspace for projects and tasks, controlled entirely from the command line via the `guillo` CLI.
+
+## Key concepts
+
+- **Teams** — the top-level unit. Every account gets a Personal team on signup.
+- **Projects** — scoped to a team. Group related work together.
+- **Tasks** — scoped to a project. Status: `open → in_progress → executed`.
+- **Lock** — pin a team and project as your working context so you don't pass IDs on every command.
+
+## Quick example
+
+```sh
+guillo auth register
+guillo lock project proj_abc123
+guillo tasks create "Ship the landing page"
+guillo execute task_xyz789
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Get from zero to first task in two minutes.
+  </Card>
+  <Card title="Installation" icon="terminal" href="/installation">
+    Install the `guillo` CLI.
+  </Card>
+  <Card title="CLI Reference" icon="book" href="/cli/auth">
+    Every command, flag, and exit code.
+  </Card>
+  <Card title="Self-Hosting" icon="server" href="/self-hosting/overview">
+    Run guilloteam on your own infrastructure.
+  </Card>
+</CardGroup>

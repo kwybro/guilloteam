@@ -1,0 +1,48 @@
+{
+	"$schema": "https://mintlify.com/schema.json",
+	"name": "guilloteam",
+	"logo": {
+		"dark": "/logo/dark.svg",
+		"light": "/logo/light.svg"
+	},
+	"favicon": "/favicon.svg",
+	"colors": {
+		"primary": "#dc2626",
+		"light": "#f87171",
+		"dark": "#991b1b"
+	},
+	"topbarLinks": [
+		{
+			"name": "guillo.team",
+			"url": "https://guillo.team"
+		}
+	],
+	"topbarCtaButton": {
+		"name": "GitHub",
+		"url": "https://github.com/guilloteam/guilloteam"
+	},
+	"navigation": [
+		{
+			"group": "Getting Started",
+			"pages": ["introduction", "quickstart", "installation"]
+		},
+		{
+			"group": "CLI Reference",
+			"pages": [
+				"cli/auth",
+				"cli/teams",
+				"cli/projects",
+				"cli/tasks",
+				"cli/lock",
+				"cli/summon"
+			]
+		},
+		{
+			"group": "Self-Hosting",
+			"pages": ["self-hosting/overview"]
+		}
+	],
+	"footerSocials": {
+		"github": "https://github.com/guilloteam/guilloteam"
+	}
+}

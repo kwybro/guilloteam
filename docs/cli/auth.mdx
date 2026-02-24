@@ -1,0 +1,30 @@
+---
+title: guillo auth
+description: Register and manage authentication.
+---
+
+## Commands
+
+### `guillo auth register`
+
+Create a new account. Prompts for email, sends a verification code, then writes your API key to `~/.guilloteam/.env`.
+
+```sh
+guillo auth register
+```
+
+### `guillo auth login`
+
+Save an existing API key to your local config.
+
+```sh
+guillo auth login
+```
+
+### `guillo auth logout`
+
+Remove your API key from local config.
+
+```sh
+guillo auth logout
+```

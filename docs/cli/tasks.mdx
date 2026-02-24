@@ -1,0 +1,23 @@
+---
+title: guillo tasks
+description: Manage tasks within a project.
+---
+
+Requires an active project (`guillo lock project <id>`).
+
+```sh
+guillo tasks list
+guillo tasks create <title>
+guillo tasks update <task-id> --title <title> --status <status>
+guillo tasks delete <task-id>
+```
+
+### Statuses
+
+`open` → `in_progress` → `executed` | `pardoned`
+
+### Execute a task
+
+```sh
+guillo execute <task-id>
+```

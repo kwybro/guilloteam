@@ -1,0 +1,37 @@
+---
+title: Quickstart
+description: Go from zero to first executed task in two minutes.
+---
+
+## 1. Install
+
+```sh
+curl -fsSL https://guillo.team/install.sh | sh
+```
+
+## 2. Register
+
+```sh
+guillo auth register
+```
+
+Enter your email. You'll receive a verification code, then your API key is written to `~/.guilloteam/.env` automatically.
+
+## 3. Create a project
+
+```sh
+guillo teams list
+guillo lock team <team-id>
+guillo projects create "My First Project"
+guillo lock project <project-id>
+```
+
+## 4. Create and execute a task
+
+```sh
+guillo tasks create "Ship it"
+guillo tasks list
+guillo execute <task-id>
+```
+
+That's it. The blade has fallen.
