@@ -19,7 +19,7 @@
 	],
 	"topbarCtaButton": {
 		"name": "GitHub",
-		"url": "https://github.com/guilloteam/guilloteam"
+		"url": "https://github.com/kwybro/guilloteam/"
 	},
 	"navigation": [
 		{
@@ -43,6 +43,6 @@
 		}
 	],
 	"footerSocials": {
-		"github": "https://github.com/guilloteam/guilloteam"
+		"github": "https://github.com/kwybro/guilloteam/"
 	}
 }
