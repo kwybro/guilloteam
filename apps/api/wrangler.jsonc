@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "guilloteam-api",
+	"name": "guilloteam-api-prod",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-11-01",
 	// Required for @libsql/client and better-auth (use node:* builtins)
