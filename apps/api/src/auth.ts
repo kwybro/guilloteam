@@ -27,6 +27,11 @@ export const auth = betterAuth({
 		}),
 		apiKey({
 			defaultPrefix: "gt_",
+			rateLimit: {
+				enabled: true,
+				timeWindow: 1000 * 60 * 60 * 24, // 1 day,
+				maxRequests: 1000
+			}
 		}),
 	],
 	databaseHooks: {
