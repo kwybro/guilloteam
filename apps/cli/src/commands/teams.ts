@@ -70,6 +70,57 @@ const createCommand = defineCommand({
 	},
 });
 
+const updateCommand = defineCommand({
+	meta: { name: "update", description: "Update an existing team" },
+	args: {
+		id: {
+			type: "positional",
+			description: "Team ID (defaults to locked team)",
+			required: false,
+		},
+		name: {
+			type: "string",
+			description: "Team name",
+			required: true,
+		},
+		pretty: {
+			type: "boolean",
+			description: "Human-readable output",
+			default: false,
+		},
+	},
+	async run({ args }) {
+		const config = await readConfig();
+		const teamId = args.id ?? config.teamId;
+		if (!teamId) {
+			process.stderr.write(
+				`${JSON.stringify({ error: "No team specified. Use guillo teams update <id> or: guillo lock team <id>" })}\n`,
+			);
+			process.exit(1);
+		}
+		const pretty = args.pretty || process.stdout.isTTY;
+
+		if (pretty) {
+			intro("Update team");
+			const s = spinner();
+			s.start(randomLoadingMessage());
+			const team = await apiFetch<TeamSelect>(`/teams/${teamId}`, {
+				method: "PATCH",
+				body: JSON.stringify({ name: args.name }),
+			});
+			s.stop(`Updated "${team.name}"`);
+			log.info(`ID: ${team.id}`);
+			outro("Done");
+		} else {
+			const team = await apiFetch<TeamSelect>(`/teams/${teamId}`, {
+				method: "PATCH",
+				body: JSON.stringify({ name: args.name }),
+			});
+			process.stdout.write(`${JSON.stringify(team)}\n`);
+		}
+	},
+});
+
 const getCommand = defineCommand({
 	meta: { name: "get", description: "Get a team with its members" },
 	args: {
@@ -144,6 +195,7 @@ export const teamsCommand = defineCommand({
 		list: listCommand,
 		get: getCommand,
 		create: createCommand,
+		update: updateCommand,
 		delete: deleteCommand,
 	},
 });
