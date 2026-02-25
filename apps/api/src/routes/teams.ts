@@ -83,7 +83,7 @@ teamRoutes.post("/", async (c) => {
 	return c.json(TeamSelect.parse(team), 201);
 });
 
-// PATCH /teams/:id — update a team (members only)
+// PATCH /teams/:id — update a team (owners only)
 teamRoutes.patch("/:id", async (c) => {
 	const { id } = c.req.param();
 	const userId = c.get("userId");
@@ -99,6 +99,7 @@ teamRoutes.patch("/:id", async (c) => {
 			and(
 				eq(memberships.teamId, parsed.data.id),
 				eq(memberships.userId, userId),
+				eq(memberships.role, "owner"),
 			),
 		);
 	if (!membership) {
