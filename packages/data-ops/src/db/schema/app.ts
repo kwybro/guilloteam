@@ -46,6 +46,7 @@ export const tasks = sqliteTable("tasks", {
 		.notNull()
 		.references(() => projects.id, { onDelete: "restrict" }),
 	title: text("title").notNull(),
+	description: text("description"),
 	status: text("status", {
 		enum: ["open", "in_progress", "executed", "pardoned"],
 	}).notNull(),

@@ -29,6 +29,13 @@
       "when": 1771986824003,
       "tag": "0003_spotty_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772669343768,
+      "tag": "0004_quiet_anthem",
+      "breakpoints": true
     }
   ]
 }
