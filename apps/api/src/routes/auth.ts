@@ -26,7 +26,8 @@ authRoutes.post(
 			});
 		} catch (err) {
 			if (err instanceof APIError) {
-				const isClientError = Number(err.status) >= 400 && Number(err.status) < 500;
+				const isClientError =
+					Number(err.status) >= 400 && Number(err.status) < 500;
 				return c.json({ error: err.message }, isClientError ? 400 : 500);
 			}
 			return c.json({ error: "Failed to send OTP" }, 500);
@@ -63,7 +64,8 @@ authRoutes.post(
 			userId = session.user.id;
 		} catch (err) {
 			if (err instanceof APIError) {
-				const isClientError = Number(err.status) >= 400 && Number(err.status) < 500;
+				const isClientError =
+					Number(err.status) >= 400 && Number(err.status) < 500;
 				return c.json({ error: err.message }, isClientError ? 400 : 500);
 			}
 			return c.json({ error: "Failed to verify OTP" }, 500);
@@ -79,7 +81,8 @@ authRoutes.post(
 			return c.json({ token: apiKey.key, email: userEmail, userId }, 201);
 		} catch (err) {
 			if (err instanceof APIError) {
-				const isClientError = Number(err.status) >= 400 && Number(err.status) < 500;
+				const isClientError =
+					Number(err.status) >= 400 && Number(err.status) < 500;
 				return c.json({ error: err.message }, isClientError ? 400 : 500);
 			}
 			return c.json({ error: "Failed to create API key" }, 500);

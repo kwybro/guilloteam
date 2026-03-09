@@ -32,7 +32,10 @@ const getCommand = defineCommand({
 	args: {
 		id: { type: "positional", description: "Task ID", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		project: { type: "string", description: "Project ID (overrides locked project)" },
+		project: {
+			type: "string",
+			description: "Project ID (overrides locked project)",
+		},
 		json: {
 			type: "boolean",
 			description: "JSON output",
@@ -68,7 +71,10 @@ const listCommand = defineCommand({
 	meta: { name: "list", description: "List all tasks in the active project" },
 	args: {
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		project: { type: "string", description: "Project ID (overrides locked project)" },
+		project: {
+			type: "string",
+			description: "Project ID (overrides locked project)",
+		},
 		json: {
 			type: "boolean",
 			description: "JSON output",
@@ -111,7 +117,10 @@ const createCommand = defineCommand({
 			default: "open",
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		project: { type: "string", description: "Project ID (overrides locked project)" },
+		project: {
+			type: "string",
+			description: "Project ID (overrides locked project)",
+		},
 		json: {
 			type: "boolean",
 			description: "JSON output",
@@ -130,7 +139,11 @@ const createCommand = defineCommand({
 				`/teams/${teamId}/projects/${projectId}/tasks`,
 				{
 					method: "POST",
-					body: JSON.stringify({ title: args.title, status: args.status, description: args.description }),
+					body: JSON.stringify({
+						title: args.title,
+						status: args.status,
+						description: args.description,
+					}),
 				},
 			);
 			s.stop(`Created "${task.title}"`);
@@ -141,7 +154,11 @@ const createCommand = defineCommand({
 				`/teams/${teamId}/projects/${projectId}/tasks`,
 				{
 					method: "POST",
-					body: JSON.stringify({ title: args.title, status: args.status, description: args.description }),
+					body: JSON.stringify({
+						title: args.title,
+						status: args.status,
+						description: args.description,
+					}),
 				},
 			);
 			process.stdout.write(`${JSON.stringify(task)}\n`);
@@ -160,7 +177,10 @@ const updateCommand = defineCommand({
 			description: "New status: open | in_progress | executed | pardoned",
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		project: { type: "string", description: "Project ID (overrides locked project)" },
+		project: {
+			type: "string",
+			description: "Project ID (overrides locked project)",
+		},
 		json: {
 			type: "boolean",
 			description: "JSON output",
@@ -208,7 +228,10 @@ const deleteCommand = defineCommand({
 	args: {
 		id: { type: "positional", description: "Task ID", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		project: { type: "string", description: "Project ID (overrides locked project)" },
+		project: {
+			type: "string",
+			description: "Project ID (overrides locked project)",
+		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);

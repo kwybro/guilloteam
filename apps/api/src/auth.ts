@@ -30,8 +30,8 @@ export const auth = betterAuth({
 			rateLimit: {
 				enabled: true,
 				timeWindow: 1000 * 60 * 60 * 24, // 1 day,
-				maxRequests: 1000
-			}
+				maxRequests: 1000,
+			},
 		}),
 	],
 	databaseHooks: {
@@ -39,7 +39,10 @@ export const auth = betterAuth({
 			create: {
 				after: async (user) => {
 					await db.transaction(async (tx) => {
-						const [team] = await tx.insert(teams).values({ name: "Personal" }).returning();
+						const [team] = await tx
+							.insert(teams)
+							.values({ name: "Personal" })
+							.returning();
 						if (!team) {
 							throw new Error("Could not create Personal team");
 						}

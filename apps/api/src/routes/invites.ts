@@ -22,35 +22,39 @@ const inviteRoutes = new Hono<{ Variables: Variables }>();
 inviteRoutes.use(authMiddleware);
 
 // POST /teams/:teamId/invites — summon a user (owner only)
-inviteRoutes.post("/teams/:teamId/invites", zValidator("json", InviteCreate, validatorHook), async (c) => {
-	const { teamId } = c.req.param();
-	const userId = c.get("userId");
+inviteRoutes.post(
+	"/teams/:teamId/invites",
+	zValidator("json", InviteCreate, validatorHook),
+	async (c) => {
+		const { teamId } = c.req.param();
+		const userId = c.get("userId");
 
-	if (!(await isTeamOwner(userId, teamId))) {
-		return c.json({ error: "Not authorized" }, 403);
-	}
+		if (!(await isTeamOwner(userId, teamId))) {
+			return c.json({ error: "Not authorized" }, 403);
+		}
 
-	const { email } = c.req.valid("json");
-	const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+		const { email } = c.req.valid("json");
+		const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-	// Re-summoning the same email replaces the existing invite
-	await db
-		.delete(invites)
-		.where(and(eq(invites.email, email), eq(invites.teamId, teamId)));
+		// Re-summoning the same email replaces the existing invite
+		await db
+			.delete(invites)
+			.where(and(eq(invites.email, email), eq(invites.teamId, teamId)));
 
-	const [invite] = await db
-		.insert(invites)
-		.values({ teamId, email, invitedBy: userId, expiresAt })
-		.returning();
+		const [invite] = await db
+			.insert(invites)
+			.values({ teamId, email, invitedBy: userId, expiresAt })
+			.returning();
 
-	if (!invite) {
-		return c.json({ error: "Could not create invite" }, 500);
-	}
+		if (!invite) {
+			return c.json({ error: "Could not create invite" }, 500);
+		}
 
-	// TODO: send "You've been summoned." email to invite.email
+		// TODO: send "You've been summoned." email to invite.email
 
-	return c.json({ token: invite.token, email: invite.email }, 201);
-});
+		return c.json({ token: invite.token, email: invite.email }, 201);
+	},
+);
 
 // GET /teams/:teamId/invites — list pending invites (owner only)
 inviteRoutes.get("/teams/:teamId/invites", async (c) => {
@@ -77,27 +81,31 @@ inviteRoutes.get("/teams/:teamId/invites", async (c) => {
 });
 
 // DELETE /teams/:teamId/invites/:id — revoke an invite (owner only)
-inviteRoutes.delete("/teams/:teamId/invites/:id", zValidator("param", InviteId, validatorHook), async (c) => {
-	const { teamId } = c.req.param();
-	const userId = c.get("userId");
+inviteRoutes.delete(
+	"/teams/:teamId/invites/:id",
+	zValidator("param", InviteId, validatorHook),
+	async (c) => {
+		const { teamId } = c.req.param();
+		const userId = c.get("userId");
 
-	if (!(await isTeamOwner(userId, teamId))) {
-		return c.json({ error: "Not authorized" }, 403);
-	}
+		if (!(await isTeamOwner(userId, teamId))) {
+			return c.json({ error: "Not authorized" }, 403);
+		}
 
-	const { id } = c.req.valid("param");
+		const { id } = c.req.valid("param");
 
-	const [deleted] = await db
-		.delete(invites)
-		.where(and(eq(invites.id, id), eq(invites.teamId, teamId)))
-		.returning();
+		const [deleted] = await db
+			.delete(invites)
+			.where(and(eq(invites.id, id), eq(invites.teamId, teamId)))
+			.returning();
 
-	if (!deleted) {
-		return c.json({ error: "Invite not found" }, 404);
-	}
+		if (!deleted) {
+			return c.json({ error: "Invite not found" }, 404);
+		}
 
-	return c.json(InviteSelect.parse(deleted));
-});
+		return c.json(InviteSelect.parse(deleted));
+	},
+);
 
 // POST /invites/:token/accept — accept a summon
 inviteRoutes.post("/invites/:token/accept", async (c) => {

@@ -19,8 +19,12 @@ export const TeamInsert = createInsertSchema(teams).omit({
 });
 export type TeamInsert = z.infer<typeof TeamInsert>;
 
-export const TeamUpdate = createUpdateSchema(teams)
-	.omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const TeamUpdate = createUpdateSchema(teams).omit({
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+	deletedAt: true,
+});
 export type TeamUpdate = z.infer<typeof TeamUpdate>;
 
 // Validates :id path param for GET/DELETE team routes
@@ -41,8 +45,13 @@ export const ProjectInsert = createInsertSchema(projects).omit({
 });
 export type ProjectInsert = z.infer<typeof ProjectInsert>;
 
-export const ProjectUpdate = createUpdateSchema(projects)
-	.omit({ id: true, teamId: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const ProjectUpdate = createUpdateSchema(projects).omit({
+	id: true,
+	teamId: true,
+	createdAt: true,
+	updatedAt: true,
+	deletedAt: true,
+});
 export type ProjectUpdate = z.infer<typeof ProjectUpdate>;
 
 export const ProjectId = z.object({ id: z.string() });
@@ -62,8 +71,13 @@ export const TaskInsert = createInsertSchema(tasks).omit({
 });
 export type TaskInsert = z.infer<typeof TaskInsert>;
 
-export const TaskUpdate = createUpdateSchema(tasks)
-	.omit({ id: true, projectId: true, createdAt: true, updatedAt: true, deletedAt: true });
+export const TaskUpdate = createUpdateSchema(tasks).omit({
+	id: true,
+	projectId: true,
+	createdAt: true,
+	updatedAt: true,
+	deletedAt: true,
+});
 export type TaskUpdate = z.infer<typeof TaskUpdate>;
 
 export const TaskId = z.object({ id: z.string() });
@@ -75,7 +89,9 @@ export const InviteSelect = createSelectSchema(invites);
 export type InviteSelect = z.infer<typeof InviteSelect>;
 
 // Body-only schema: only email comes from the request; teamId/invitedBy/expiresAt are set by the route
-export const InviteCreate = createInsertSchema(invites, { email: z.email() }).pick({ email: true });
+export const InviteCreate = createInsertSchema(invites, {
+	email: z.email(),
+}).pick({ email: true });
 export type InviteCreate = z.infer<typeof InviteCreate>;
 
 export const InviteId = z.object({ id: z.string() });

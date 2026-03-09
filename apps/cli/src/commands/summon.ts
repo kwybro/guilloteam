@@ -18,7 +18,11 @@ const resolveTeam = async (flag: string | undefined): Promise<string> => {
 export const summonCommand = defineCommand({
 	meta: { name: "summon", description: "Invite a user to the active team" },
 	args: {
-		email: { type: "positional", description: "Email address to invite", required: true },
+		email: {
+			type: "positional",
+			description: "Email address to invite",
+			required: true,
+		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		json: {
 			type: "boolean",
@@ -34,19 +38,25 @@ export const summonCommand = defineCommand({
 			intro("Summon");
 			const s = spinner();
 			s.start(randomLoadingMessage());
-			const invite = await apiFetch<SummonResponse>(`/teams/${teamId}/invites`, {
-				method: "POST",
-				body: JSON.stringify({ email: args.email }),
-			});
+			const invite = await apiFetch<SummonResponse>(
+				`/teams/${teamId}/invites`,
+				{
+					method: "POST",
+					body: JSON.stringify({ email: args.email }),
+				},
+			);
 			s.stop(`Summoned ${invite.email}`);
 			log.info(`Token: ${invite.token}`);
 			log.info("Share this token — the invitee runs: guillo team join <token>");
 			outro("Done");
 		} else {
-			const invite = await apiFetch<SummonResponse>(`/teams/${teamId}/invites`, {
-				method: "POST",
-				body: JSON.stringify({ email: args.email }),
-			});
+			const invite = await apiFetch<SummonResponse>(
+				`/teams/${teamId}/invites`,
+				{
+					method: "POST",
+					body: JSON.stringify({ email: args.email }),
+				},
+			);
 			process.stdout.write(`${JSON.stringify(invite)}\n`);
 		}
 	},

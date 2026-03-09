@@ -8,7 +8,10 @@ const lockTeamCommand = defineCommand({
 		id: { type: "positional", description: "Team ID", required: true },
 	},
 	async run({ args }) {
-		await writeConfig({ GUILLOTEAM_TEAM_ID: args.id, GUILLOTEAM_PROJECT_ID: "" });
+		await writeConfig({
+			GUILLOTEAM_TEAM_ID: args.id,
+			GUILLOTEAM_PROJECT_ID: "",
+		});
 		if (process.stdout.isTTY) {
 			intro("Lock");
 			log.success(`Locked to team ${args.id}`);
