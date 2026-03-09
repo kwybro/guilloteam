@@ -12,17 +12,17 @@ import {
 	teams,
 	user,
 } from "@guilloteam/data-ops";
-import { flattenError } from "@guilloteam/schemas";
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
-import { isTeamOwner } from "../utilities";
+import { isTeamOwner, validatorHook } from "../utilities";
 
 const inviteRoutes = new Hono<{ Variables: Variables }>();
 inviteRoutes.use(authMiddleware);
 
 // POST /teams/:teamId/invites — summon a user (owner only)
-inviteRoutes.post("/teams/:teamId/invites", async (c) => {
+inviteRoutes.post("/teams/:teamId/invites", zValidator("json", InviteCreate, validatorHook), async (c) => {
 	const { teamId } = c.req.param();
 	const userId = c.get("userId");
 
@@ -30,13 +30,7 @@ inviteRoutes.post("/teams/:teamId/invites", async (c) => {
 		return c.json({ error: "Not authorized" }, 403);
 	}
 
-	const body = await c.req.json();
-	const parsed = InviteCreate.safeParse(body);
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
-
-	const { email } = parsed.data;
+	const { email } = c.req.valid("json");
 	const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
 	// Re-summoning the same email replaces the existing invite
@@ -83,22 +77,19 @@ inviteRoutes.get("/teams/:teamId/invites", async (c) => {
 });
 
 // DELETE /teams/:teamId/invites/:id — revoke an invite (owner only)
-inviteRoutes.delete("/teams/:teamId/invites/:id", async (c) => {
-	const { teamId, id } = c.req.param();
+inviteRoutes.delete("/teams/:teamId/invites/:id", zValidator("param", InviteId, validatorHook), async (c) => {
+	const { teamId } = c.req.param();
 	const userId = c.get("userId");
 
 	if (!(await isTeamOwner(userId, teamId))) {
 		return c.json({ error: "Not authorized" }, 403);
 	}
 
-	const parsed = InviteId.safeParse({ id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const { id } = c.req.valid("param");
 
 	const [deleted] = await db
 		.delete(invites)
-		.where(and(eq(invites.id, parsed.data.id), eq(invites.teamId, teamId)))
+		.where(and(eq(invites.id, id), eq(invites.teamId, teamId)))
 		.returning();
 
 	if (!deleted) {

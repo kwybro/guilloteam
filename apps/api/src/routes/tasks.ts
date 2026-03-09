@@ -11,11 +11,11 @@ import {
 	TaskUpdate,
 	tasks,
 } from "@guilloteam/data-ops";
-import { flattenError } from "@guilloteam/schemas";
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
-import { userTeamIds } from "../utilities";
+import { userTeamIds, validatorHook } from "../utilities";
 
 const taskRoutes = new Hono<{ Variables: Variables }>();
 taskRoutes.use(authMiddleware);
@@ -39,13 +39,10 @@ taskRoutes.get("/:teamId/projects/:projectId/tasks", async (c) => {
 });
 
 // GET /teams/:teamId/projects/:projectId/tasks/:id
-taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", async (c) => {
+taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", zValidator("param", TaskId, validatorHook), async (c) => {
 	const userId = c.get("userId");
-	const { projectId, id } = c.req.param();
-	const parsed = TaskId.safeParse({ id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const { projectId } = c.req.param();
+	const { id } = c.req.valid("param");
 	const [task] = await db
 		.select(getTableColumns(tasks))
 		.from(tasks)
@@ -53,7 +50,7 @@ taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 		.where(
 			and(
 				eq(tasks.projectId, projectId),
-				eq(tasks.id, parsed.data.id),
+				eq(tasks.id, id),
 				inArray(projects.teamId, userTeamIds(userId)),
 				isNull(tasks.deletedAt),
 			),
@@ -65,14 +62,10 @@ taskRoutes.get("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 });
 
 // POST /teams/:teamId/projects/:projectId/tasks
-taskRoutes.post("/:teamId/projects/:projectId/tasks", async (c) => {
+taskRoutes.post("/:teamId/projects/:projectId/tasks", zValidator("json", TaskInsert, validatorHook), async (c) => {
 	const userId = c.get("userId");
 	const { projectId } = c.req.param();
-	const body = await c.req.json();
-	const parsed = TaskInsert.safeParse({ ...body, projectId });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const body = c.req.valid("json");
 	const [project] = await db
 		.select()
 		.from(projects)
@@ -86,7 +79,7 @@ taskRoutes.post("/:teamId/projects/:projectId/tasks", async (c) => {
 	if (!project) {
 		return c.json({ error: "Project not found" }, 404);
 	}
-	const [task] = await db.insert(tasks).values(parsed.data).returning();
+	const [task] = await db.insert(tasks).values({ ...body, projectId }).returning();
 	if (!task) {
 		return c.json({ error: "Could not create Task" }, 500);
 	}
@@ -94,15 +87,10 @@ taskRoutes.post("/:teamId/projects/:projectId/tasks", async (c) => {
 });
 
 // PATCH /teams/:teamId/projects/:projectId/tasks/:id
-taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
+taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", zValidator("json", TaskUpdate, validatorHook), async (c) => {
 	const userId = c.get("userId");
 	const { projectId, id } = c.req.param();
-	const body = await c.req.json();
-	const parsed = TaskUpdate.safeParse({ ...body, id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
-	const { id: taskId, ...updates } = parsed.data;
+	const updates = c.req.valid("json");
 	const [existing] = await db
 		.select(getTableColumns(tasks))
 		.from(tasks)
@@ -110,7 +98,7 @@ taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 		.where(
 			and(
 				eq(tasks.projectId, projectId),
-				eq(tasks.id, taskId),
+				eq(tasks.id, id),
 				inArray(projects.teamId, userTeamIds(userId)),
 				isNull(tasks.deletedAt),
 			),
@@ -121,7 +109,7 @@ taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	const [task] = await db
 		.update(tasks)
 		.set({ ...updates, updatedAt: new Date() })
-		.where(eq(tasks.id, taskId))
+		.where(eq(tasks.id, id))
 		.returning();
 	if (!task) {
 		return c.json({ error: "Task not found" }, 404);
@@ -130,13 +118,10 @@ taskRoutes.patch("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 });
 
 // DELETE /teams/:teamId/projects/:projectId/tasks/:id
-taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
+taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", zValidator("param", TaskId, validatorHook), async (c) => {
 	const userId = c.get("userId");
-	const { projectId, id } = c.req.param();
-	const parsed = TaskId.safeParse({ id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const { projectId } = c.req.param();
+	const { id } = c.req.valid("param");
 	const [existing] = await db
 		.select(getTableColumns(tasks))
 		.from(tasks)
@@ -144,7 +129,7 @@ taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 		.where(
 			and(
 				eq(tasks.projectId, projectId),
-				eq(tasks.id, parsed.data.id),
+				eq(tasks.id, id),
 				inArray(projects.teamId, userTeamIds(userId)),
 				isNull(tasks.deletedAt),
 			),
@@ -155,7 +140,7 @@ taskRoutes.delete("/:teamId/projects/:projectId/tasks/:id", async (c) => {
 	const [task] = await db
 		.update(tasks)
 		.set({ deletedAt: new Date() })
-		.where(eq(tasks.id, parsed.data.id))
+		.where(eq(tasks.id, id))
 		.returning();
 	if (!task) {
 		return c.json({ error: "Task not found" }, 404);
