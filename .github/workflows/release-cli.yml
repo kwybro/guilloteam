@@ -109,7 +109,7 @@ jobs:
       - name: Sync version and publish
         run: |
           VERSION="${{ needs.check.outputs.version }}"
-          cd packages/npm
+          cd apps/cli/npm
           npm version "$VERSION" --no-git-tag-version --allow-same-version
           npm publish --access public
         env:
