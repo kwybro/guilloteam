@@ -20,17 +20,17 @@ export const summonCommand = defineCommand({
 	args: {
 		email: { type: "positional", description: "Email address to invite", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const teamId = await resolveTeam(args.team);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Summon");
 			const s = spinner();
 			s.start(randomLoadingMessage());

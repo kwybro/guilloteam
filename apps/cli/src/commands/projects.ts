@@ -21,17 +21,17 @@ const listCommand = defineCommand({
 	meta: { name: "list", description: "List all projects in the active team" },
 	args: {
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const teamId = await resolveTeam(args.team);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Projects");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -53,17 +53,17 @@ const createCommand = defineCommand({
 	args: {
 		name: { type: "positional", description: "Project name", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const teamId = await resolveTeam(args.team);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Create project");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -93,9 +93,9 @@ const getCommand = defineCommand({
 			required: false,
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
@@ -115,9 +115,9 @@ const getCommand = defineCommand({
 			);
 			process.exit(1);
 		}
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Project");
 			const s = spinner();
 			s.start(randomLoadingMessage());

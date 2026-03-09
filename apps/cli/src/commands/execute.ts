@@ -33,17 +33,17 @@ export const executeCommand = defineCommand({
 		id: { type: "positional", description: "Task ID", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Execute task");
 			const s = spinner();
 			s.start(randomLoadingMessage());

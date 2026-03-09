@@ -18,16 +18,16 @@ const joinCommand = defineCommand({
 	meta: { name: "join", description: "Accept a team invite" },
 	args: {
 		token: { type: "positional", description: "Invite token", required: true },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Join team");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -92,9 +92,9 @@ const invitesCommand = defineCommand({
 	meta: { name: "invites", description: "List pending invites (run with 'revoke <id>' to revoke)" },
 	args: {
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
@@ -103,9 +103,9 @@ const invitesCommand = defineCommand({
 	},
 	async run({ args }) {
 		const teamId = await resolveTeam(args.team);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Invites");
 			const s = spinner();
 			s.start(randomLoadingMessage());

@@ -33,17 +33,17 @@ const getCommand = defineCommand({
 		id: { type: "positional", description: "Task ID", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Task");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -69,17 +69,17 @@ const listCommand = defineCommand({
 	args: {
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Tasks");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -112,17 +112,17 @@ const createCommand = defineCommand({
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Create task");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -161,9 +161,9 @@ const updateCommand = defineCommand({
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
@@ -176,13 +176,13 @@ const updateCommand = defineCommand({
 		}
 
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 		const updates: Record<string, string | null> = {};
 		if (args.title) updates.title = args.title;
 		if (args.status) updates.status = args.status;
 		if (args.description !== undefined) updates.description = args.description;
 
-		if (pretty) {
+		if (!json) {
 			intro("Update task");
 			const s = spinner();
 			s.start(randomLoadingMessage());
