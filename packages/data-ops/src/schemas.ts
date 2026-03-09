@@ -20,8 +20,7 @@ export const TeamInsert = createInsertSchema(teams).omit({
 export type TeamInsert = z.infer<typeof TeamInsert>;
 
 export const TeamUpdate = createUpdateSchema(teams)
-	.omit({ createdAt: true, updatedAt: true, deletedAt: true })
-	.required({ id: true });
+	.omit({ id: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type TeamUpdate = z.infer<typeof TeamUpdate>;
 
 // Validates :id path param for GET/DELETE team routes
@@ -35,6 +34,7 @@ export type ProjectSelect = z.infer<typeof ProjectSelect>;
 
 export const ProjectInsert = createInsertSchema(projects).omit({
 	id: true,
+	teamId: true,
 	createdAt: true,
 	updatedAt: true,
 	deletedAt: true,
@@ -42,8 +42,7 @@ export const ProjectInsert = createInsertSchema(projects).omit({
 export type ProjectInsert = z.infer<typeof ProjectInsert>;
 
 export const ProjectUpdate = createUpdateSchema(projects)
-	.omit({ createdAt: true, updatedAt: true, deletedAt: true })
-	.required({ id: true });
+	.omit({ id: true, teamId: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type ProjectUpdate = z.infer<typeof ProjectUpdate>;
 
 export const ProjectId = z.object({ id: z.string() });
@@ -56,6 +55,7 @@ export type TaskSelect = z.infer<typeof TaskSelect>;
 
 export const TaskInsert = createInsertSchema(tasks).omit({
 	id: true,
+	projectId: true,
 	createdAt: true,
 	updatedAt: true,
 	deletedAt: true,
@@ -63,8 +63,7 @@ export const TaskInsert = createInsertSchema(tasks).omit({
 export type TaskInsert = z.infer<typeof TaskInsert>;
 
 export const TaskUpdate = createUpdateSchema(tasks)
-	.omit({ createdAt: true, updatedAt: true, deletedAt: true })
-	.required({ id: true });
+	.omit({ id: true, projectId: true, createdAt: true, updatedAt: true, deletedAt: true });
 export type TaskUpdate = z.infer<typeof TaskUpdate>;
 
 export const TaskId = z.object({ id: z.string() });

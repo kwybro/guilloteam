@@ -11,11 +11,11 @@ import {
 	teams,
 	user,
 } from "@guilloteam/data-ops";
-import { flattenError } from "@guilloteam/schemas";
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { db } from "../db";
 import { authMiddleware, type Variables } from "../middleware/auth";
-import { userTeamIds } from "../utilities";
+import { userTeamIds, validatorHook } from "../utilities";
 
 const teamRoutes = new Hono<{ Variables: Variables }>();
 teamRoutes.use(authMiddleware);
@@ -33,20 +33,16 @@ teamRoutes.get("/", async (c) => {
 });
 
 // GET /teams/:id — get a single team
-teamRoutes.get("/:id", async (c) => {
-	const { id } = c.req.param();
+teamRoutes.get("/:id", zValidator("param", TeamId, validatorHook), async (c) => {
 	const userId = c.get("userId");
-	const parsed = TeamId.safeParse({ id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const { id } = c.req.valid("param");
 	const [team] = await db
 		.select()
 		.from(teams)
 		.where(
 			and(
 				inArray(teams.id, userTeamIds(userId)),
-				eq(teams.id, parsed.data.id),
+				eq(teams.id, id),
 				isNull(teams.deletedAt),
 			),
 		);
@@ -61,19 +57,15 @@ teamRoutes.get("/:id", async (c) => {
 		})
 		.from(memberships)
 		.innerJoin(user, eq(memberships.userId, user.id))
-		.where(eq(memberships.teamId, parsed.data.id));
+		.where(eq(memberships.teamId, id));
 	return c.json({ ...TeamSelect.parse(team), members });
 });
 
 // POST /teams — create a team and make the creator an owner
-teamRoutes.post("/", async (c) => {
+teamRoutes.post("/", zValidator("json", TeamInsert, validatorHook), async (c) => {
 	const userId = c.get("userId");
-	const body = await c.req.json();
-	const parsed = TeamInsert.safeParse(body);
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
-	const [team] = await db.insert(teams).values(parsed.data).returning();
+	const body = c.req.valid("json");
+	const [team] = await db.insert(teams).values(body).returning();
 	if (!team) {
 		return c.json({ error: "Could not create Team" }, 500);
 	}
@@ -84,20 +76,16 @@ teamRoutes.post("/", async (c) => {
 });
 
 // PATCH /teams/:id — update a team (owners only)
-teamRoutes.patch("/:id", async (c) => {
+teamRoutes.patch("/:id", zValidator("json", TeamUpdate, validatorHook), async (c) => {
 	const { id } = c.req.param();
 	const userId = c.get("userId");
-	const body = await c.req.json();
-	const parsed = TeamUpdate.safeParse({ ...body, id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const updates = c.req.valid("json");
 	const [membership] = await db
 		.select()
 		.from(memberships)
 		.where(
 			and(
-				eq(memberships.teamId, parsed.data.id),
+				eq(memberships.teamId, id),
 				eq(memberships.userId, userId),
 				eq(memberships.role, "owner"),
 			),
@@ -105,11 +93,10 @@ teamRoutes.patch("/:id", async (c) => {
 	if (!membership) {
 		return c.json({ error: "Team not found" }, 404);
 	}
-	const { id: teamId, ...updates } = parsed.data;
 	const [team] = await db
 		.update(teams)
 		.set({ ...updates, updatedAt: new Date() })
-		.where(eq(teams.id, teamId))
+		.where(eq(teams.id, id))
 		.returning();
 	if (!team) {
 		return c.json({ error: "Team not found" }, 404);
@@ -118,19 +105,15 @@ teamRoutes.patch("/:id", async (c) => {
 });
 
 // DELETE /teams/:id — soft delete (owners only)
-teamRoutes.delete("/:id", async (c) => {
-	const { id } = c.req.param();
+teamRoutes.delete("/:id", zValidator("param", TeamId, validatorHook), async (c) => {
 	const userId = c.get("userId");
-	const parsed = TeamId.safeParse({ id });
-	if (!parsed.success) {
-		return c.json({ error: flattenError(parsed.error) }, 400);
-	}
+	const { id } = c.req.valid("param");
 	const [membership] = await db
 		.select()
 		.from(memberships)
 		.where(
 			and(
-				eq(memberships.teamId, parsed.data.id),
+				eq(memberships.teamId, id),
 				eq(memberships.userId, userId),
 				eq(memberships.role, "owner"),
 			),
@@ -141,7 +124,7 @@ teamRoutes.delete("/:id", async (c) => {
 	const [team] = await db
 		.update(teams)
 		.set({ deletedAt: new Date() })
-		.where(eq(teams.id, parsed.data.id))
+		.where(eq(teams.id, id))
 		.returning();
 	if (!team) {
 		return c.json({ error: "Team not found" }, 404);
