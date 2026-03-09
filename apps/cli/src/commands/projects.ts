@@ -3,7 +3,12 @@ import type { ProjectSelect } from "@guilloteam/data-ops";
 import { defineCommand } from "citty";
 import { apiFetch, randomLoadingMessage, readConfig } from "../utilities";
 
-type TaskStats = { open: number; in_progress: number; executed: number; pardoned: number };
+type TaskStats = {
+	open: number;
+	in_progress: number;
+	executed: number;
+	pardoned: number;
+};
 type ProjectWithStats = ProjectSelect & { tasks: TaskStats };
 
 const resolveTeam = async (flag: string | undefined): Promise<string> => {
@@ -35,14 +40,18 @@ const listCommand = defineCommand({
 			intro("Projects");
 			const s = spinner();
 			s.start(randomLoadingMessage());
-			const projects = await apiFetch<ProjectSelect[]>(`/teams/${teamId}/projects`);
+			const projects = await apiFetch<ProjectSelect[]>(
+				`/teams/${teamId}/projects`,
+			);
 			s.stop(`Found ${projects.length} project(s)`);
 			for (const project of projects) {
 				log.info(`${project.name}  ${project.id}`);
 			}
 			outro("Done");
 		} else {
-			const projects = await apiFetch<ProjectSelect[]>(`/teams/${teamId}/projects`);
+			const projects = await apiFetch<ProjectSelect[]>(
+				`/teams/${teamId}/projects`,
+			);
 			process.stdout.write(`${JSON.stringify(projects)}\n`);
 		}
 	},
@@ -67,18 +76,24 @@ const createCommand = defineCommand({
 			intro("Create project");
 			const s = spinner();
 			s.start(randomLoadingMessage());
-			const project = await apiFetch<ProjectSelect>(`/teams/${teamId}/projects`, {
-				method: "POST",
-				body: JSON.stringify({ name: args.name }),
-			});
+			const project = await apiFetch<ProjectSelect>(
+				`/teams/${teamId}/projects`,
+				{
+					method: "POST",
+					body: JSON.stringify({ name: args.name }),
+				},
+			);
 			s.stop(`Created "${project.name}"`);
 			log.info(`ID: ${project.id}`);
 			outro("Done");
 		} else {
-			const project = await apiFetch<ProjectSelect>(`/teams/${teamId}/projects`, {
-				method: "POST",
-				body: JSON.stringify({ name: args.name }),
-			});
+			const project = await apiFetch<ProjectSelect>(
+				`/teams/${teamId}/projects`,
+				{
+					method: "POST",
+					body: JSON.stringify({ name: args.name }),
+				},
+			);
 			process.stdout.write(`${JSON.stringify(project)}\n`);
 		}
 	},
@@ -151,14 +166,18 @@ const deleteCommand = defineCommand({
 		const teamId = await resolveTeam(args.team);
 
 		if (process.stdout.isTTY) {
-			const confirmed = await confirm({ message: `Delete project ${args.id}?` });
+			const confirmed = await confirm({
+				message: `Delete project ${args.id}?`,
+			});
 			if (isCancel(confirmed) || !confirmed) {
 				outro("Cancelled");
 				process.exit(0);
 			}
 			const s = spinner();
 			s.start(randomLoadingMessage());
-			await apiFetch<ProjectSelect>(`/teams/${teamId}/projects/${args.id}`, { method: "DELETE" });
+			await apiFetch<ProjectSelect>(`/teams/${teamId}/projects/${args.id}`, {
+				method: "DELETE",
+			});
 			s.stop("Deleted");
 			outro("Done");
 		} else {

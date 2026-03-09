@@ -54,11 +54,20 @@ export const readConfig = async (): Promise<Config> => {
 			process.env.GUILLOTEAM_API_URL ??
 			fileEnv.GUILLOTEAM_API_URL ??
 			DEFAULT_API_URL,
-		token: process.env.GUILLOTEAM_TOKEN || fileEnv.GUILLOTEAM_TOKEN || undefined,
-		teamId: process.env.GUILLOTEAM_TEAM_ID || fileEnv.GUILLOTEAM_TEAM_ID || undefined,
-		projectId: process.env.GUILLOTEAM_PROJECT_ID || fileEnv.GUILLOTEAM_PROJECT_ID || undefined,
-		userEmail: process.env.GUILLOTEAM_USER_EMAIL || fileEnv.GUILLOTEAM_USER_EMAIL || undefined,
-		userId: process.env.GUILLOTEAM_USER_ID || fileEnv.GUILLOTEAM_USER_ID || undefined,
+		token:
+			process.env.GUILLOTEAM_TOKEN || fileEnv.GUILLOTEAM_TOKEN || undefined,
+		teamId:
+			process.env.GUILLOTEAM_TEAM_ID || fileEnv.GUILLOTEAM_TEAM_ID || undefined,
+		projectId:
+			process.env.GUILLOTEAM_PROJECT_ID ||
+			fileEnv.GUILLOTEAM_PROJECT_ID ||
+			undefined,
+		userEmail:
+			process.env.GUILLOTEAM_USER_EMAIL ||
+			fileEnv.GUILLOTEAM_USER_EMAIL ||
+			undefined,
+		userId:
+			process.env.GUILLOTEAM_USER_ID || fileEnv.GUILLOTEAM_USER_ID || undefined,
 	};
 };
 
@@ -91,13 +100,10 @@ export const apiFetch = async <T>(
 	});
 
 	if (!res.ok) {
-		const body = await res
-			.json()
-			.catch(() => ({ error: res.statusText }));
+		const body = await res.json().catch(() => ({ error: res.statusText }));
 		process.stderr.write(`${JSON.stringify(body)}\n`);
 		process.exit(res.status >= 500 ? 2 : 1);
 	}
 
 	return res.json() as Promise<T>;
 };
-

@@ -18,9 +18,7 @@
 	"vars": {
 		"BETTER_AUTH_URL": "https://api.guillo.team"
 	},
-	"routes": [
-		{ "pattern": "api.guillo.team", "custom_domain": true }
-	],
+	"routes": [{ "pattern": "api.guillo.team", "custom_domain": true }],
 
 	"env": {
 		"dev": {
@@ -30,9 +28,7 @@
 			"vars": {
 				"BETTER_AUTH_URL": "https://dev.api.guillo.team"
 			},
-			"routes": [
-				{ "pattern": "dev.api.guillo.team", "custom_domain": true }
-			],
+			"routes": [{ "pattern": "dev.api.guillo.team", "custom_domain": true }]
 		}
 	}
 }

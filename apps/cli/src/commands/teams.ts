@@ -183,7 +183,9 @@ const deleteCommand = defineCommand({
 			s.stop("Deleted");
 			outro("Done");
 		} else {
-			const team = await apiFetch<TeamSelect>(`/teams/${args.id}`, { method: "DELETE" });
+			const team = await apiFetch<TeamSelect>(`/teams/${args.id}`, {
+				method: "DELETE",
+			});
 			process.stdout.write(`${JSON.stringify(team)}\n`);
 		}
 	},

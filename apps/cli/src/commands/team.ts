@@ -1,7 +1,12 @@
 import { confirm, intro, isCancel, log, outro, spinner } from "@clack/prompts";
 import type { InviteSelect, TeamSelect } from "@guilloteam/data-ops";
 import { defineCommand } from "citty";
-import { apiFetch, randomLoadingMessage, readConfig, writeConfig } from "../utilities";
+import {
+	apiFetch,
+	randomLoadingMessage,
+	readConfig,
+	writeConfig,
+} from "../utilities";
 
 const resolveTeam = async (flag: string | undefined): Promise<string> => {
 	const teamId = flag ?? (await readConfig()).teamId;
@@ -89,7 +94,10 @@ const revokeCommand = defineCommand({
 });
 
 const invitesCommand = defineCommand({
-	meta: { name: "invites", description: "List pending invites (run with 'revoke <id>' to revoke)" },
+	meta: {
+		name: "invites",
+		description: "List pending invites (run with 'revoke <id>' to revoke)",
+	},
 	args: {
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		json: {
@@ -109,14 +117,20 @@ const invitesCommand = defineCommand({
 			intro("Invites");
 			const s = spinner();
 			s.start(randomLoadingMessage());
-			const inviteList = await apiFetch<InviteSelect[]>(`/teams/${teamId}/invites`);
+			const inviteList = await apiFetch<InviteSelect[]>(
+				`/teams/${teamId}/invites`,
+			);
 			s.stop(`Found ${inviteList.length} pending invite(s)`);
 			for (const invite of inviteList) {
-				log.info(`${invite.email}  ID: ${invite.id}  Expires: ${invite.expiresAt}`);
+				log.info(
+					`${invite.email}  ID: ${invite.id}  Expires: ${invite.expiresAt}`,
+				);
 			}
 			outro("Done");
 		} else {
-			const inviteList = await apiFetch<InviteSelect[]>(`/teams/${teamId}/invites`);
+			const inviteList = await apiFetch<InviteSelect[]>(
+				`/teams/${teamId}/invites`,
+			);
 			process.stdout.write(`${JSON.stringify(inviteList)}\n`);
 		}
 	},

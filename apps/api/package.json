@@ -1,29 +1,29 @@
 {
-  "name": "api",
-  "module": "src/index.ts",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "dev": "bun run --hot ./src/index.ts",
-    "deploy": "wrangler deploy --env=",
-    "deploy:dev": "wrangler deploy --env dev"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/figlet": "^1.7.0",
-    "wrangler": "^4.68.0"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@guilloteam/data-ops": "workspace:*",
-    "@guilloteam/schemas": "workspace:*",
-    "@hono/zod-validator": "^0.7.6",
-    "better-auth": "^1.4.18",
-    "figlet": "^1.10.0",
-    "hono": "^4.11.9",
-    "resend": "^6.9.2",
-    "zod": "^4.3.6"
-  }
+	"name": "api",
+	"module": "src/index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev": "bun run --hot ./src/index.ts",
+		"deploy": "wrangler deploy --env=",
+		"deploy:dev": "wrangler deploy --env dev"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@types/figlet": "^1.7.0",
+		"wrangler": "^4.68.0"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@guilloteam/data-ops": "workspace:*",
+		"@guilloteam/schemas": "workspace:*",
+		"@hono/zod-validator": "^0.7.6",
+		"better-auth": "^1.4.18",
+		"figlet": "^1.10.0",
+		"hono": "^4.11.9",
+		"resend": "^6.9.2",
+		"zod": "^4.3.6"
+	}
 }

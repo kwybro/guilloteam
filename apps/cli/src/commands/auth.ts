@@ -1,6 +1,11 @@
 import { intro, isCancel, outro, spinner, text } from "@clack/prompts";
 import { defineCommand } from "citty";
-import { apiFetch, randomLoadingMessage, readConfig, writeConfig } from "../utilities";
+import {
+	apiFetch,
+	randomLoadingMessage,
+	readConfig,
+	writeConfig,
+} from "../utilities";
 
 type RegisterResponse = {
 	token: string;
@@ -9,7 +14,10 @@ type RegisterResponse = {
 };
 
 const registerCommand = defineCommand({
-	meta: { name: "register", description: "Create a new account and receive an API key" },
+	meta: {
+		name: "register",
+		description: "Create a new account and receive an API key",
+	},
 	async run() {
 		intro("Register");
 
@@ -34,10 +42,14 @@ const registerCommand = defineCommand({
 		}
 
 		s.start(randomLoadingMessage());
-		const { token, email: confirmedEmail, userId } = await apiFetch<RegisterResponse>(
-			"/auth/verify-otp",
-			{ method: "POST", body: JSON.stringify({ email, otp }) },
-		);
+		const {
+			token,
+			email: confirmedEmail,
+			userId,
+		} = await apiFetch<RegisterResponse>("/auth/verify-otp", {
+			method: "POST",
+			body: JSON.stringify({ email, otp }),
+		});
 		s.stop("Verified");
 
 		const { apiUrl } = await readConfig();
@@ -48,7 +60,9 @@ const registerCommand = defineCommand({
 			GUILLOTEAM_USER_ID: userId,
 		});
 
-		outro(`Welcome, ${confirmedEmail}! Your API key has been saved to ~/.guilloteam/.env`);
+		outro(
+			`Welcome, ${confirmedEmail}! Your API key has been saved to ~/.guilloteam/.env`,
+		);
 	},
 });
 

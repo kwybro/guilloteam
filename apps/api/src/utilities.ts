@@ -11,7 +11,8 @@ import { db } from "./db";
 // supports both, but flattenError only accepts $ZodError. We're on v4 so the cast is safe.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const validatorHook: Hook<any, any, any, any> = (result, c) => {
-	if (!result.success) return c.json({ error: flattenError(result.error as $ZodError) }, 400);
+	if (!result.success)
+		return c.json({ error: flattenError(result.error as $ZodError) }, 400);
 };
 
 // Returns a subquery of teamIds the user is a member of.
@@ -27,6 +28,12 @@ export const isTeamOwner = async (userId: string, teamId: string) => {
 	const [membership] = await db
 		.select()
 		.from(memberships)
-		.where(and(eq(memberships.userId, userId), eq(memberships.teamId, teamId), eq(memberships.role, "owner")));
+		.where(
+			and(
+				eq(memberships.userId, userId),
+				eq(memberships.teamId, teamId),
+				eq(memberships.role, "owner"),
+			),
+		);
 	return membership !== undefined;
 };

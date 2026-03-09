@@ -32,7 +32,10 @@ export const executeCommand = defineCommand({
 	args: {
 		id: { type: "positional", description: "Task ID", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
-		project: { type: "string", description: "Project ID (overrides locked project)" },
+		project: {
+			type: "string",
+			description: "Project ID (overrides locked project)",
+		},
 		json: {
 			type: "boolean",
 			description: "JSON output",

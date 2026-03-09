@@ -21,7 +21,11 @@ const seedProject = (teamId: string) => ({
 
 const seedTasks = (projectId: string) => [
 	{ projectId, title: "Set up CI/CD pipeline", status: "open" as const },
-	{ projectId, title: "Write API documentation", status: "in_progress" as const },
+	{
+		projectId,
+		title: "Write API documentation",
+		status: "in_progress" as const,
+	},
 	{ projectId, title: "Design database schema", status: "done" as const },
 	{ projectId, title: "Create landing page", status: "open" as const },
 	{ projectId, title: "Fix login redirect bug", status: "cancelled" as const },
@@ -36,8 +40,14 @@ await db.delete(teams);
 
 // Insert seed data
 const newTeams = await db.insert(teams).values(seedTeam).returning();
-const newProjects = await db.insert(projects).values(seedProject(newTeams[0].id)).returning();
-const newTasks = await db.insert(tasks).values(seedTasks(newProjects[0].id)).returning();
+const newProjects = await db
+	.insert(projects)
+	.values(seedProject(newTeams[0].id))
+	.returning();
+const newTasks = await db
+	.insert(tasks)
+	.values(seedTasks(newProjects[0].id))
+	.returning();
 
 console.log(`Seeded ${newTeams.length} teams:`);
 console.table(newTeams);
