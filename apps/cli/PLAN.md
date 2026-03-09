@@ -1,12 +1,12 @@
 # CLI Plan
 
 ## Overview
-A CLI (`guillo`) that wraps the guilloteam API. Agent-first, but thoughtfully built for humans too.
+A CLI (`guillo`) that wraps the guilloteam API. Human-first, but works great in agent/pipe contexts too.
 
 ## Stack
 - **`citty`** — command/subcommand routing and flag parsing
 - **`@clack/prompts`** — interactive UX layered in per-command (spinners, prompts, formatting)
-- Output defaults to JSON; `--pretty` or TTY detection enables human-readable output
+- Output defaults to human-readable; `--json` or pipe detection enables JSON output
 - Published independently from the monorepo via `changesets`
 
 ## Commands (initial scope)

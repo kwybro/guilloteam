@@ -33,27 +33,27 @@ const getCommand = defineCommand({
 		id: { type: "positional", description: "Task ID", required: true },
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Task");
 			const s = spinner();
 			s.start(randomLoadingMessage());
-			// TODO: task will gain description/context fields in a future update
 			const task = await apiFetch<TaskSelect>(
 				`/teams/${teamId}/projects/${projectId}/tasks/${args.id}`,
 			);
 			s.stop(task.title);
-			log.info(`ID:      ${task.id}`);
-			log.info(`Status:  ${task.status}`);
+			log.info(`ID:          ${task.id}`);
+			log.info(`Status:      ${task.status}`);
+			log.info(`Description: ${task.description ?? "(none)"}`);
 			outro("Done");
 		} else {
 			const task = await apiFetch<TaskSelect>(
@@ -69,17 +69,17 @@ const listCommand = defineCommand({
 	args: {
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Tasks");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -104,6 +104,7 @@ const createCommand = defineCommand({
 	meta: { name: "create", description: "Create a new task" },
 	args: {
 		title: { type: "positional", description: "Task title", required: true },
+		description: { type: "string", description: "Task description" },
 		status: {
 			type: "string",
 			description: "Initial status: open | in_progress | executed | pardoned",
@@ -111,17 +112,17 @@ const createCommand = defineCommand({
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Create task");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -129,7 +130,7 @@ const createCommand = defineCommand({
 				`/teams/${teamId}/projects/${projectId}/tasks`,
 				{
 					method: "POST",
-					body: JSON.stringify({ title: args.title, status: args.status }),
+					body: JSON.stringify({ title: args.title, status: args.status, description: args.description }),
 				},
 			);
 			s.stop(`Created "${task.title}"`);
@@ -140,7 +141,7 @@ const createCommand = defineCommand({
 				`/teams/${teamId}/projects/${projectId}/tasks`,
 				{
 					method: "POST",
-					body: JSON.stringify({ title: args.title, status: args.status }),
+					body: JSON.stringify({ title: args.title, status: args.status, description: args.description }),
 				},
 			);
 			process.stdout.write(`${JSON.stringify(task)}\n`);
@@ -153,33 +154,35 @@ const updateCommand = defineCommand({
 	args: {
 		id: { type: "positional", description: "Task ID", required: true },
 		title: { type: "string", description: "New title" },
+		description: { type: "string", description: "New description" },
 		status: {
 			type: "string",
 			description: "New status: open | in_progress | executed | pardoned",
 		},
 		team: { type: "string", description: "Team ID (overrides locked team)" },
 		project: { type: "string", description: "Project ID (overrides locked project)" },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
-		if (!args.title && !args.status) {
+		if (!args.title && !args.status && args.description === undefined) {
 			process.stderr.write(
-				`${JSON.stringify({ error: "Provide at least one of: --title, --status" })}\n`,
+				`${JSON.stringify({ error: "Provide at least one of: --title, --status, --description" })}\n`,
 			);
 			process.exit(1);
 		}
 
 		const { teamId, projectId } = await resolveContext(args.team, args.project);
-		const pretty = args.pretty || process.stdout.isTTY;
-		const updates: Record<string, string> = {};
+		const json = args.json || !process.stdout.isTTY;
+		const updates: Record<string, string | null> = {};
 		if (args.title) updates.title = args.title;
 		if (args.status) updates.status = args.status;
+		if (args.description !== undefined) updates.description = args.description;
 
-		if (pretty) {
+		if (!json) {
 			intro("Update task");
 			const s = spinner();
 			s.start(randomLoadingMessage());

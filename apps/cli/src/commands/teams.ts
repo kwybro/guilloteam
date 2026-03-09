@@ -10,16 +10,16 @@ type TeamWithMembers = TeamSelect & {
 const listCommand = defineCommand({
 	meta: { name: "list", description: "List all teams" },
 	args: {
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Teams");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -40,16 +40,16 @@ const createCommand = defineCommand({
 	meta: { name: "create", description: "Create a new team" },
 	args: {
 		name: { type: "positional", description: "Team name", required: true },
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
 	async run({ args }) {
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Create team");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -83,9 +83,9 @@ const updateCommand = defineCommand({
 			description: "Team name",
 			required: true,
 		},
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
@@ -98,9 +98,9 @@ const updateCommand = defineCommand({
 			);
 			process.exit(1);
 		}
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Update team");
 			const s = spinner();
 			s.start(randomLoadingMessage());
@@ -129,9 +129,9 @@ const getCommand = defineCommand({
 			description: "Team ID (defaults to locked team)",
 			required: false,
 		},
-		pretty: {
+		json: {
 			type: "boolean",
-			description: "Human-readable output",
+			description: "JSON output",
 			default: false,
 		},
 	},
@@ -144,9 +144,9 @@ const getCommand = defineCommand({
 			);
 			process.exit(1);
 		}
-		const pretty = args.pretty || process.stdout.isTTY;
+		const json = args.json || !process.stdout.isTTY;
 
-		if (pretty) {
+		if (!json) {
 			intro("Team");
 			const s = spinner();
 			s.start(randomLoadingMessage());
