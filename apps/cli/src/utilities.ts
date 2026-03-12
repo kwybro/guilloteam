@@ -28,9 +28,9 @@ const parseEnvFile = (text: string): Record<string, string> => {
 };
 
 const serializeEnvFile = (env: Record<string, string>): string =>
-	Object.entries(env)
+	`${Object.entries(env)
 		.map(([k, v]) => `${k}=${v}`)
-		.join("\n") + "\n";
+		.join("\n")}\n`;
 
 export type Config = {
 	apiUrl: string;
