@@ -9,7 +9,7 @@ import { db } from "./db";
 // generic values (only generic functions), so any is correct for a shared hook constant.
 // The error cast: @hono/zod-validator types error as v3.ZodError | v4.$ZodError since it
 // supports both, but flattenError only accepts $ZodError. We're on v4 so the cast is safe.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: Hook type params (T, E, P, I) vary per route; generic values aren't supported in TS
 export const validatorHook: Hook<any, any, any, any> = (result, c) => {
 	if (!result.success)
 		return c.json({ error: flattenError(result.error as $ZodError) }, 400);
