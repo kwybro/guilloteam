@@ -1,8 +1,8 @@
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { chmod } from "node:fs/promises";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -17,7 +17,9 @@ const ARTIFACTS = {
 
 const artifact = ARTIFACTS[process.platform]?.[process.arch];
 if (!artifact) {
-	console.error(`guillo: unsupported platform ${process.platform}/${process.arch}`);
+	console.error(
+		`guillo: unsupported platform ${process.platform}/${process.arch}`,
+	);
 	process.exit(1);
 }
 
@@ -26,11 +28,15 @@ const dest = join(__dirname, "bin", "guillo-bin");
 
 mkdirSync(join(__dirname, "bin"), { recursive: true });
 
-console.log(`Downloading guillo v${version} for ${process.platform}/${process.arch}...`);
+console.log(
+	`Downloading guillo v${version} for ${process.platform}/${process.arch}...`,
+);
 
 const response = await fetch(url);
 if (!response.ok) {
-	console.error(`guillo: download failed — HTTP ${response.status} from ${url}`);
+	console.error(
+		`guillo: download failed — HTTP ${response.status} from ${url}`,
+	);
 	process.exit(1);
 }
 

@@ -12,6 +12,10 @@
 	"engines": {
 		"node": ">=18"
 	},
-	"keywords": ["task-management", "cli", "ai-agents"],
+	"keywords": [
+		"task-management",
+		"cli",
+		"ai-agents"
+	],
 	"license": "MIT"
 }
