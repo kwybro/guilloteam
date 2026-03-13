@@ -12,6 +12,7 @@ jobs:
   check:
     name: Check version
     runs-on: ubuntu-latest
+    environment: production
     outputs:
       version: ${{ steps.version.outputs.value }}
       should-release: ${{ steps.should-release.outputs.value }}
@@ -36,6 +37,7 @@ jobs:
   build:
     name: Build ${{ matrix.artifact }}
     runs-on: ubuntu-latest
+    environment: production
     needs: check
     if: needs.check.outputs.should-release == 'true' || github.event_name == 'workflow_dispatch'
     strategy:
@@ -72,6 +74,7 @@ jobs:
   release:
     name: Create release
     runs-on: ubuntu-latest
+    environment: production
     needs: [check, build]
     if: needs.check.outputs.should-release == 'true' || github.event_name == 'workflow_dispatch'
     permissions:
@@ -96,6 +99,7 @@ jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
+    environment: production
     needs: [check, release]
     if: needs.check.outputs.should-release == 'true' || github.event_name == 'workflow_dispatch'
     steps:
