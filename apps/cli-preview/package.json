@@ -1,0 +1,16 @@
+{
+	"name": "@guilloteam/cli-preview",
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy"
+	},
+	"dependencies": {
+		"@cloudflare/containers": "^0.1.0"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250620.0",
+		"wrangler": "^4.68.0"
+	}
+}
