@@ -43,6 +43,20 @@ jobs:
             --name "guilloteam-api-preview-${PR_NUM}" \
             --var "BETTER_AUTH_URL:https://guilloteam-api-preview-${PR_NUM}.workers.dev"
 
+      # Push secrets to the per-PR Worker (wrangler secrets are per-Worker-name,
+      # so --env preview secrets don't carry over to the --name override)
+      - name: Set preview API secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          WORKER_NAME="guilloteam-api-preview-${PR_NUM}"
+          echo '{
+            "LIBSQL_URL": "${{ secrets.PREVIEW_LIBSQL_URL }}",
+            "LIBSQL_AUTH_TOKEN": "${{ secrets.PREVIEW_LIBSQL_AUTH_TOKEN }}",
+            "BETTER_AUTH_SECRET": "${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}"
+          }' | npx wrangler secret bulk --name "${WORKER_NAME}"
+
       # Copy CLI binary into the cli-preview directory for Docker build context
       - name: Stage CLI binary for container
         run: cp apps/cli/dist/guillo-linux-x64 apps/cli-preview/guillo
