@@ -32,30 +32,34 @@ jobs:
           cd apps/cli
           bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile dist/guillo-linux-x64
 
-      # Deploy the preview API Worker
+      # Deploy the preview API Worker.
+      # First deploy creates the Worker so wrangler secret bulk has a target.
+      # Secrets are then pushed, and a second deploy ensures the Worker starts
+      # with all secrets available.
       - name: Deploy preview API
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          npx wrangler deploy --env preview \
-            --name "guilloteam-api-preview-${PR_NUM}" \
-            --var "BETTER_AUTH_URL:https://guilloteam-api-preview-${PR_NUM}.workers.dev"
-
-      # Push secrets to the per-PR Worker (wrangler secrets are per-Worker-name,
-      # so --env preview secrets don't carry over to the --name override)
-      - name: Set preview API secrets
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          PR_NUM=${{ github.event.pull_request.number }}
           WORKER_NAME="guilloteam-api-preview-${PR_NUM}"
+
+          # Initial deploy (may fail on first request if secrets aren't set yet)
+          npx wrangler deploy --env preview \
+            --name "${WORKER_NAME}" \
+            --var "BETTER_AUTH_URL:https://${WORKER_NAME}.workers.dev"
+
+          # Push secrets to the per-PR Worker
           echo '{
             "LIBSQL_URL": "${{ secrets.PREVIEW_LIBSQL_URL }}",
             "LIBSQL_AUTH_TOKEN": "${{ secrets.PREVIEW_LIBSQL_AUTH_TOKEN }}",
             "BETTER_AUTH_SECRET": "${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}"
           }' | npx wrangler secret bulk --name "${WORKER_NAME}"
+
+          # Redeploy so the Worker version includes the secrets
+          npx wrangler deploy --env preview \
+            --name "${WORKER_NAME}" \
+            --var "BETTER_AUTH_URL:https://${WORKER_NAME}.workers.dev"
 
       # Copy CLI binary into the cli-preview directory for Docker build context
       - name: Stage CLI binary for container
