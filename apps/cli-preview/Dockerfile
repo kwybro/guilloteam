@@ -20,16 +20,10 @@ COPY src/terminal-server.ts ./terminal-server.ts
 COPY guillo /usr/local/bin/guillo
 RUN chmod +x /usr/local/bin/guillo
 
-# Ignore SIGHUP — Cloudflare Containers sends it to child processes
-# when the Durable Object fetch completes, killing the PTY shell.
-# Also set up a welcome message.
-RUN echo '\n\
-trap "" HUP\n\
-echo ""\n\
-echo "  guilloteam CLI preview"\n\
-echo "  Run: guillo --help"\n\
-echo ""\n\
-' >> /root/.bashrc
+# Ignore SIGHUP in both login and interactive shells, and show welcome.
+RUN printf 'trap "" HUP\n' > /root/.profile && \
+    printf 'trap "" HUP\n[ -f ~/.bashrc ] && . ~/.bashrc\n' >> /root/.profile && \
+    printf 'echo ""\necho "  guilloteam CLI preview"\necho "  Run: guillo --help"\necho ""\n' > /root/.bashrc
 
 ENV PORT=8080
 ENV SHELL=/bin/bash

@@ -6,6 +6,10 @@
  */
 import * as pty from "@lydell/node-pty";
 
+// Ignore SIGHUP at the process level — Cloudflare Containers sends it
+// after the Durable Object fetch completes, which kills PTY children.
+process.on("SIGHUP", () => {});
+
 const PORT = Number(process.env.PORT) || 8080;
 const SHELL = process.env.SHELL || "/bin/bash";
 
