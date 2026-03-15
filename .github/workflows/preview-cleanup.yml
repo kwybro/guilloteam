@@ -8,6 +8,7 @@ jobs:
   cleanup:
     name: Cleanup Preview
     runs-on: ubuntu-latest
+    environment: preview
     steps:
       - uses: actions/checkout@v4
 
