@@ -20,10 +20,13 @@ COPY src/terminal-server.ts ./terminal-server.ts
 COPY guillo /usr/local/bin/guillo
 RUN chmod +x /usr/local/bin/guillo
 
-# Ignore SIGHUP in both login and interactive shells, and show welcome.
-RUN printf 'trap "" HUP\n' > /root/.profile && \
-    printf 'trap "" HUP\n[ -f ~/.bashrc ] && . ~/.bashrc\n' >> /root/.profile && \
-    printf 'echo ""\necho "  guilloteam CLI preview"\necho "  Run: guillo --help"\necho ""\n' > /root/.bashrc
+# Welcome message
+RUN echo '\n\
+echo ""\n\
+echo "  guilloteam CLI preview"\n\
+echo "  Run: guillo --help"\n\
+echo ""\n\
+' >> /root/.bashrc
 
 ENV PORT=8080
 ENV SHELL=/bin/bash

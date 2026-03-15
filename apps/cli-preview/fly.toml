@@ -1,0 +1,27 @@
+# Fly.io config for CLI preview containers.
+# Each PR gets its own app: guilloteam-cli-preview-<pr-number>
+# This file is used as a template — the app name is overridden in CI.
+
+app = "guilloteam-cli-preview"
+primary_region = "iad"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+[checks]
+  [checks.health]
+    type = "http"
+    port = 8080
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"

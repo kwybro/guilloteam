@@ -53,16 +53,28 @@ jobs:
       - name: Stage CLI binary for container
         run: cp apps/cli/dist/guillo-linux-x64 apps/cli-preview/guillo
 
-      # Deploy the CLI preview container + Worker
+      # Deploy CLI preview to Fly.io — one app per PR with auto-stop
       - name: Deploy CLI preview
-        working-directory: apps/cli-preview
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-          npx wrangler deploy \
-            --name "guilloteam-cli-preview-${PR_NUM}" \
-            --var "PREVIEW_API_URL:https://guilloteam-api-preview-${PR_NUM}.kwybro.workers.dev"
+          APP_NAME="guilloteam-cli-preview-${PR_NUM}"
+          API_URL="https://guilloteam-api-preview-${PR_NUM}.kwybro.workers.dev"
+
+          curl -L https://fly.io/install.sh | sh
+          export PATH="$HOME/.fly/bin:$PATH"
+
+          # Create the app if it doesn't exist yet
+          fly apps create "${APP_NAME}" --org personal 2>/dev/null || true
+
+          # Deploy with the API URL set as an env var
+          cd apps/cli-preview
+          fly deploy \
+            --app "${APP_NAME}" \
+            --env "GUILLOTEAM_API_URL=${API_URL}" \
+            --wait-timeout 120 \
+            --strategy immediate
 
       # Post a comment on the PR with preview URLs
       - name: Comment on PR
@@ -71,7 +83,7 @@ jobs:
           script: |
             const prNum = context.payload.pull_request.number;
             const apiUrl = `https://guilloteam-api-preview-${prNum}.kwybro.workers.dev`;
-            const terminalUrl = `https://guilloteam-cli-preview-${prNum}.kwybro.workers.dev`;
+            const terminalUrl = `https://guilloteam-cli-preview-${prNum}.fly.dev`;
 
             const body = [
               `## ⚔️ CLI Preview Ready`,
@@ -83,7 +95,7 @@ jobs:
               ``,
               `Open the terminal link on any device (including mobile) to try the CLI changes from this PR.`,
               ``,
-              `<sub>The terminal container sleeps after 10 min of inactivity and wakes on the next request (~5s cold start).</sub>`,
+              `<sub>The terminal container auto-stops when idle and wakes on the next request (~5s cold start).</sub>`,
             ].join('\n');
 
             // Find existing preview comment to update instead of creating duplicates
