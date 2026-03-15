@@ -105,13 +105,40 @@ function getTerminalHtml(): string {
 
 <script type="module">
   import { init, Terminal } from "https://esm.sh/ghostty-web@0.4.0";
-  import { FitAddon } from "https://esm.sh/ghostty-web@0.4.0/addons/fit";
 
   await init();
 
   const container = document.getElementById("terminal-container");
   const statusDot = document.getElementById("status-dot");
   const statusText = document.getElementById("status-text");
+
+  // Inline fit logic — ghostty-web doesn't export FitAddon from npm.
+  // Measures the container and proposes cols/rows based on a test character span.
+  function fitTerminal(term) {
+    const el = term._core?._renderService?.dimensions || null;
+    if (el) {
+      const { css: { cell: { width: cw, height: ch } } } = el;
+      if (cw > 0 && ch > 0) {
+        const cols = Math.max(2, Math.floor(container.clientWidth / cw));
+        const rows = Math.max(1, Math.floor(container.clientHeight / ch));
+        term.resize(cols, rows);
+        return;
+      }
+    }
+    // Fallback: measure with a temporary span
+    const span = document.createElement("span");
+    span.style.cssText = "position:absolute;visibility:hidden;white-space:pre;font-family:Monaco,Menlo,'Courier New',monospace;font-size:14px;";
+    span.textContent = "W";
+    document.body.appendChild(span);
+    const cw = span.getBoundingClientRect().width;
+    const ch = span.getBoundingClientRect().height;
+    document.body.removeChild(span);
+    if (cw > 0 && ch > 0) {
+      const cols = Math.max(2, Math.floor(container.clientWidth / cw));
+      const rows = Math.max(1, Math.floor(container.clientHeight / ch));
+      term.resize(cols, rows);
+    }
+  }
 
   function connect() {
     const term = new Terminal({
@@ -121,10 +148,8 @@ function getTerminalHtml(): string {
       fontSize: 14,
     });
 
-    const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
     term.open(container);
-    fitAddon.fit();
+    fitTerminal(term);
 
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const { cols, rows } = term;
@@ -160,7 +185,7 @@ function getTerminalHtml(): string {
       }
     });
 
-    const ro = new ResizeObserver(() => fitAddon.fit());
+    const ro = new ResizeObserver(() => fitTerminal(term));
     ro.observe(container);
   }
 
