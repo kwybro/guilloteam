@@ -203,21 +203,42 @@ const server = Bun.serve({
 	websocket: {
 		open(ws) {
 			const { cols, rows } = ws.data as { cols: number; rows: number };
-			const ptyProcess = pty.spawn(SHELL, [], {
-				name: "xterm-256color",
-				cols,
-				rows,
-				cwd: process.env.HOME || "/",
-				env: {
-					...process.env,
-					TERM: "xterm-256color",
-					COLORTERM: "truecolor",
-				} as Record<string, string>,
-			});
+
+			// Send diagnostic info first
+			const diag = [
+				`\x1b[90m[debug] SHELL=${SHELL}`,
+				`[debug] HOME=${process.env.HOME || "(unset)"}`,
+				`[debug] cols=${cols} rows=${rows}`,
+				`[debug] node-pty loaded: ${typeof pty.spawn === "function"}`,
+				`\x1b[0m`,
+			].join("\r\n");
+			ws.send(diag + "\r\n");
+
+			let ptyProcess: pty.IPty;
+			try {
+				ptyProcess = pty.spawn(SHELL, [], {
+					name: "xterm-256color",
+					cols,
+					rows,
+					cwd: process.env.HOME || "/",
+					env: {
+						...process.env,
+						TERM: "xterm-256color",
+						COLORTERM: "truecolor",
+					} as Record<string, string>,
+				});
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				ws.send(`\r\n\x1b[31m[error] PTY spawn failed: ${msg}\x1b[0m\r\n`);
+				ws.close();
+				return;
+			}
 
 			const id = String(ptyProcess.pid);
 			sessions.set(id, ptyProcess);
 			(ws.data as Record<string, unknown>).ptyId = id;
+
+			ws.send(`\x1b[90m[debug] PTY spawned pid=${id}\x1b[0m\r\n`);
 
 			ptyProcess.onData((data: string) => {
 				try {
@@ -227,9 +248,12 @@ const server = Bun.serve({
 				}
 			});
 
-			ptyProcess.onExit(() => {
+			ptyProcess.onExit(({ exitCode, signal }) => {
 				sessions.delete(id);
 				try {
+					ws.send(
+						`\r\n\x1b[90m[debug] PTY exited code=${exitCode} signal=${signal}\x1b[0m\r\n`,
+					);
 					ws.close();
 				} catch {
 					// already closed
