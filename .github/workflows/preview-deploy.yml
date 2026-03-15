@@ -43,7 +43,7 @@ jobs:
           WORKER_NAME="guilloteam-api-preview-${PR_NUM}"
           npx wrangler deploy --env preview \
             --name "${WORKER_NAME}" \
-            --var "BETTER_AUTH_URL:https://${WORKER_NAME}.workers.dev" \
+            --var "BETTER_AUTH_URL:https://${WORKER_NAME}.kwybro.workers.dev" \
             --var "LIBSQL_URL:${{ secrets.PREVIEW_LIBSQL_URL }}" \
             --var "LIBSQL_AUTH_TOKEN:${{ secrets.PREVIEW_LIBSQL_AUTH_TOKEN }}" \
             --var "BETTER_AUTH_SECRET:${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}" \
@@ -62,7 +62,7 @@ jobs:
           PR_NUM=${{ github.event.pull_request.number }}
           npx wrangler deploy \
             --name "guilloteam-cli-preview-${PR_NUM}" \
-            --var "PREVIEW_API_URL:https://guilloteam-api-preview-${PR_NUM}.workers.dev"
+            --var "PREVIEW_API_URL:https://guilloteam-api-preview-${PR_NUM}.kwybro.workers.dev"
 
       # Post a comment on the PR with preview URLs
       - name: Comment on PR
@@ -70,8 +70,8 @@ jobs:
         with:
           script: |
             const prNum = context.payload.pull_request.number;
-            const apiUrl = `https://guilloteam-api-preview-${prNum}.workers.dev`;
-            const terminalUrl = `https://guilloteam-cli-preview-${prNum}.workers.dev`;
+            const apiUrl = `https://guilloteam-api-preview-${prNum}.kwybro.workers.dev`;
+            const terminalUrl = `https://guilloteam-cli-preview-${prNum}.kwybro.workers.dev`;
 
             const body = [
               `## ⚔️ CLI Preview Ready`,
