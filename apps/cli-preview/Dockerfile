@@ -20,8 +20,11 @@ COPY src/terminal-server.ts ./terminal-server.ts
 COPY guillo /usr/local/bin/guillo
 RUN chmod +x /usr/local/bin/guillo
 
-# Set up a welcome environment
+# Ignore SIGHUP — Cloudflare Containers sends it to child processes
+# when the Durable Object fetch completes, killing the PTY shell.
+# Also set up a welcome message.
 RUN echo '\n\
+trap "" HUP\n\
 echo ""\n\
 echo "  guilloteam CLI preview"\n\
 echo "  Run: guillo --help"\n\

@@ -216,7 +216,7 @@ const server = Bun.serve({
 
 			let ptyProcess: pty.IPty;
 			try {
-				ptyProcess = pty.spawn(SHELL, [], {
+				ptyProcess = pty.spawn(SHELL, ["--login"], {
 					name: "xterm-256color",
 					cols,
 					rows,
