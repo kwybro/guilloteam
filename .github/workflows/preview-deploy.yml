@@ -46,7 +46,7 @@ jobs:
             --var "BETTER_AUTH_URL:https://${WORKER_NAME}.workers.dev" \
             --var "LIBSQL_URL:${{ secrets.PREVIEW_LIBSQL_URL }}" \
             --var "LIBSQL_AUTH_TOKEN:${{ secrets.PREVIEW_LIBSQL_AUTH_TOKEN }}" \
-            --var "BETTER_AUTH_SECRET:${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}"
+            --var "BETTER_AUTH_SECRET:${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}" \
             --var "RESEND_API_KEY:${{ secrets.PREVIEW_RESEND_API_KEY }}"
 
       # Copy CLI binary into the cli-preview directory for Docker build context
