@@ -26,15 +26,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Build CLI binaries for all platforms
-      - name: Build CLI binaries
+      # Build CLI binary for macOS (Intel)
+      - name: Build CLI binary
         run: |
           cd apps/cli
           mkdir -p dist
-          bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile dist/guillo-linux-x64
-          bun build --compile --target=bun-linux-arm64 ./src/index.ts --outfile dist/guillo-linux-arm64
           bun build --compile --target=bun-darwin-x64 ./src/index.ts --outfile dist/guillo-darwin-x64
-          bun build --compile --target=bun-darwin-arm64 ./src/index.ts --outfile dist/guillo-darwin-arm64
 
       # Upload CLI binaries as artifacts
       - name: Upload CLI artifacts
@@ -79,35 +76,10 @@ jobs:
               ``,
               `### Install preview CLI`,
               ``,
-              `Download the binary for your platform from the [workflow artifacts](https://github.com/${repo}/actions/runs/${runId}):`,
-              ``,
               '```bash',
-              `# macOS (Apple Silicon)`,
-              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
-              `unzip guillo.zip && chmod +x guillo-darwin-arm64 && sudo mv guillo-darwin-arm64 /usr/local/bin/guillo`,
-              '```',
-              ``,
-              '<details>',
-              '<summary>Other platforms</summary>',
-              ``,
-              '```bash',
-              `# macOS (Intel)`,
               `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
               `unzip guillo.zip && chmod +x guillo-darwin-x64 && sudo mv guillo-darwin-x64 /usr/local/bin/guillo`,
               '```',
-              ``,
-              '```bash',
-              `# Linux (x64)`,
-              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
-              `unzip guillo.zip && chmod +x guillo-linux-x64 && sudo mv guillo-linux-x64 /usr/local/bin/guillo`,
-              '```',
-              ``,
-              '```bash',
-              `# Linux (ARM64)`,
-              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
-              `unzip guillo.zip && chmod +x guillo-linux-arm64 && sudo mv guillo-linux-arm64 /usr/local/bin/guillo`,
-              '```',
-              '</details>',
               ``,
               `**From your phone?** Open this PR branch in a [GitHub Codespace](https://github.com/codespaces/new/${repo}?ref=${context.payload.pull_request.head.ref}&devcontainer_path=.devcontainer%2Fdevcontainer.json) — \`guillo\` is pre-built and on PATH.`,
               ``,
