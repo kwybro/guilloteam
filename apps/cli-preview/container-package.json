@@ -1,8 +1,0 @@
-{
-	"name": "cli-preview-container",
-	"private": true,
-	"type": "module",
-	"dependencies": {
-		"@lydell/node-pty": "^1.1.0"
-	}
-}

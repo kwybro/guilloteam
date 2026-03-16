@@ -12,16 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Delete preview deployments
+      - name: Delete preview API Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           PR_NUM=${{ github.event.pull_request.number }}
-
-          # Delete CLI preview Worker + Container
-          npx wrangler delete --name "guilloteam-cli-preview-${PR_NUM}" --force || true
-
-          # Delete preview API Worker
           npx wrangler delete --name "guilloteam-api-preview-${PR_NUM}" --force || true
-
-          echo "Cleaned up preview deployments for PR #${PR_NUM}"
+          echo "Cleaned up preview API Worker for PR #${PR_NUM}"

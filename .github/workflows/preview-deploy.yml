@@ -26,11 +26,23 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Build the CLI for Linux (used inside the container)
-      - name: Build CLI
+      # Build CLI binaries for all platforms
+      - name: Build CLI binaries
         run: |
           cd apps/cli
+          mkdir -p dist
           bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile dist/guillo-linux-x64
+          bun build --compile --target=bun-linux-arm64 ./src/index.ts --outfile dist/guillo-linux-arm64
+          bun build --compile --target=bun-darwin-x64 ./src/index.ts --outfile dist/guillo-darwin-x64
+          bun build --compile --target=bun-darwin-arm64 ./src/index.ts --outfile dist/guillo-darwin-arm64
+
+      # Upload CLI binaries as artifacts
+      - name: Upload CLI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: guillo-preview-pr${{ github.event.pull_request.number }}
+          path: apps/cli/dist/guillo-*
+          retention-days: 7
 
       # Deploy the preview API Worker with all vars inline.
       # GitHub Actions masks secret values in logs so --var is safe here.
@@ -49,53 +61,57 @@ jobs:
             --var "BETTER_AUTH_SECRET:${{ secrets.PREVIEW_BETTER_AUTH_SECRET }}" \
             --var "RESEND_API_KEY:${{ secrets.PREVIEW_RESEND_API_KEY }}"
 
-      # Copy CLI binary into the cli-preview directory for Docker build context
-      - name: Stage CLI binary for container
-        run: cp apps/cli/dist/guillo-linux-x64 apps/cli-preview/guillo
-
-      # Deploy CLI preview to Fly.io — one app per PR with auto-stop
-      - name: Deploy CLI preview
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          PR_NUM=${{ github.event.pull_request.number }}
-          APP_NAME="guilloteam-cli-preview-${PR_NUM}"
-          API_URL="https://guilloteam-api-preview-${PR_NUM}.kwybro.workers.dev"
-
-          curl -L https://fly.io/install.sh | sh
-          export PATH="$HOME/.fly/bin:$PATH"
-
-          # Create the app if it doesn't exist yet
-          fly apps create "${APP_NAME}" --org personal 2>/dev/null || true
-
-          # Deploy with the API URL set as an env var
-          cd apps/cli-preview
-          fly deploy \
-            --app "${APP_NAME}" \
-            --env "GUILLOTEAM_API_URL=${API_URL}" \
-            --wait-timeout 120 \
-            --strategy immediate
-
-      # Post a comment on the PR with preview URLs
+      # Post a comment on the PR with preview info and install commands
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const prNum = context.payload.pull_request.number;
             const apiUrl = `https://guilloteam-api-preview-${prNum}.kwybro.workers.dev`;
-            const terminalUrl = `https://guilloteam-cli-preview-${prNum}.fly.dev`;
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+            const runId = context.runId;
+            const artifactName = `guillo-preview-pr${prNum}`;
 
             const body = [
               `## ⚔️ CLI Preview Ready`,
               ``,
-              `| | URL |`,
-              `|---|---|`,
-              `| **Terminal** | [Open browser terminal](${terminalUrl}) |`,
-              `| **API** | \`${apiUrl}\` |`,
+              `**API:** \`${apiUrl}\``,
               ``,
-              `Open the terminal link on any device (including mobile) to try the CLI changes from this PR.`,
+              `### Install preview CLI`,
               ``,
-              `<sub>The terminal container auto-stops when idle and wakes on the next request (~5s cold start).</sub>`,
+              `Download the binary for your platform from the [workflow artifacts](https://github.com/${repo}/actions/runs/${runId}):`,
+              ``,
+              '```bash',
+              `# macOS (Apple Silicon)`,
+              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
+              `unzip guillo.zip && chmod +x guillo-darwin-arm64 && sudo mv guillo-darwin-arm64 /usr/local/bin/guillo`,
+              '```',
+              ``,
+              '<details>',
+              '<summary>Other platforms</summary>',
+              ``,
+              '```bash',
+              `# macOS (Intel)`,
+              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
+              `unzip guillo.zip && chmod +x guillo-darwin-x64 && sudo mv guillo-darwin-x64 /usr/local/bin/guillo`,
+              '```',
+              ``,
+              '```bash',
+              `# Linux (x64)`,
+              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
+              `unzip guillo.zip && chmod +x guillo-linux-x64 && sudo mv guillo-linux-x64 /usr/local/bin/guillo`,
+              '```',
+              ``,
+              '```bash',
+              `# Linux (ARM64)`,
+              `curl -L "https://nightly.link/${repo}/actions/runs/${runId}/${artifactName}.zip" -o guillo.zip`,
+              `unzip guillo.zip && chmod +x guillo-linux-arm64 && sudo mv guillo-linux-arm64 /usr/local/bin/guillo`,
+              '```',
+              '</details>',
+              ``,
+              `**From your phone?** Open this PR branch in a [GitHub Codespace](https://github.com/${repo}/codespaces/new?ref=${context.payload.pull_request.head.ref}) — the CLI is ready to build and run.`,
+              ``,
+              `<sub>Artifacts expire after 7 days. Updated on each push to this PR.</sub>`,
             ].join('\n');
 
             // Find existing preview comment to update instead of creating duplicates
