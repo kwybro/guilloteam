@@ -109,7 +109,7 @@ jobs:
               '```',
               '</details>',
               ``,
-              `**From your phone?** Open this PR branch in a [GitHub Codespace](https://github.com/${repo}/codespaces/new?ref=${context.payload.pull_request.head.ref}) — the CLI is ready to build and run.`,
+              `**From your phone?** Open this PR branch in a [GitHub Codespace](https://github.com/codespaces/new/${repo}?ref=${context.payload.pull_request.head.ref}&devcontainer_path=.devcontainer%2Fdevcontainer.json) — \`guillo\` is pre-built and on PATH.`,
               ``,
               `<sub>Artifacts expire after 7 days. Updated on each push to this PR.</sub>`,
             ].join('\n');
