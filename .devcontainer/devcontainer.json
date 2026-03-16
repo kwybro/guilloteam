@@ -1,0 +1,10 @@
+{
+	"name": "Guilloteam",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+	"features": {
+		"ghcr.io/shyim/devcontainers-features/bun:0": {
+			"version": "1.3.8"
+		}
+	},
+	"postCreateCommand": "bun install && cd apps/cli && bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile dist/guillo && sudo ln -sf $(pwd)/dist/guillo /usr/local/bin/guillo"
+}

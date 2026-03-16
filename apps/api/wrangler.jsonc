@@ -29,6 +29,16 @@
 				"BETTER_AUTH_URL": "https://dev.api.guillo.team"
 			},
 			"routes": [{ "pattern": "dev.api.guillo.team", "custom_domain": true }]
+		},
+		// Preview environments are deployed per-PR by CI.
+		// Name is overridden in CI: guilloteam-api-preview-<pr-number>
+		// Secrets are pushed per-PR via `wrangler secret bulk` in CI
+		// (sourced from GitHub environment secrets: PREVIEW_LIBSQL_URL, etc.)
+		"preview": {
+			"name": "guilloteam-api-preview",
+			"vars": {
+				"BETTER_AUTH_URL": "https://preview.api.guillo.team"
+			}
 		}
 	}
 }
