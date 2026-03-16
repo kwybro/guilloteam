@@ -1,6 +1,6 @@
 /**
  * Terminal server that runs inside the Fly.io container.
- * Serves the ghostty-web frontend and bridges WebSocket connections to a PTY.
+ * Serves an xterm.js frontend and bridges WebSocket connections to a PTY.
  *
  * Uses @lydell/node-pty for PTY spawning and Bun's native WebSocket support.
  */
@@ -17,6 +17,7 @@ function getTerminalHtml(): string {
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>guillo preview</title>
+<link rel="stylesheet" href="https://esm.sh/@xterm/xterm@5.5.0/css/xterm.css" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -104,9 +105,9 @@ function getTerminalHtml(): string {
 </div>
 
 <script type="module">
-  import { init, Terminal } from "https://esm.sh/ghostty-web@0.4.0";
-
-  await init();
+  import { Terminal } from "https://esm.sh/@xterm/xterm@5.5.0";
+  import { FitAddon } from "https://esm.sh/@xterm/addon-fit@0.10.0";
+  import { WebLinksAddon } from "https://esm.sh/@xterm/addon-web-links@0.11.0";
 
   const container = document.getElementById("terminal-container");
   const statusDot = document.getElementById("status-dot");
@@ -118,14 +119,20 @@ function getTerminalHtml(): string {
       scrollback: 10000,
       fontFamily: "Monaco, Menlo, 'Courier New', monospace",
       fontSize: 14,
+      theme: {
+        background: "#1e1e1e",
+      },
     });
 
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    term.loadAddon(new WebLinksAddon());
     term.open(container);
+    fitAddon.fit();
 
-    const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const { cols, rows } = term;
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(proto + "//" + location.host + "/ws?cols=" + cols + "&rows=" + rows);
-    ws.binaryType = "arraybuffer";
 
     ws.addEventListener("open", () => {
       statusDot.classList.add("connected");
@@ -133,8 +140,7 @@ function getTerminalHtml(): string {
     });
 
     ws.addEventListener("message", (e) => {
-      const data = typeof e.data === "string" ? e.data : new Uint8Array(e.data);
-      term.write(data);
+      term.write(typeof e.data === "string" ? e.data : new Uint8Array(e.data));
     });
 
     ws.addEventListener("close", () => {
@@ -151,15 +157,10 @@ function getTerminalHtml(): string {
 
     term.onData((data) => ws.readyState === WebSocket.OPEN && ws.send(data));
 
-    term.onResize(({ cols, rows }) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "resize", cols, rows }));
-      }
-    });
-
     const ro = new ResizeObserver(() => {
+      fitAddon.fit();
       if (ws.readyState === WebSocket.OPEN) {
-        term.resize(term.cols, term.rows);
+        ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
       }
     });
     ro.observe(container);
@@ -203,21 +204,33 @@ const server = Bun.serve({
 	websocket: {
 		open(ws) {
 			const { cols, rows } = ws.data as { cols: number; rows: number };
-			const ptyProcess = pty.spawn(SHELL, ["--login"], {
-				name: "xterm-256color",
-				cols,
-				rows,
-				cwd: process.env.HOME || "/",
-				env: {
-					...process.env,
-					TERM: "xterm-256color",
-					COLORTERM: "truecolor",
-				} as Record<string, string>,
-			});
+			console.log(`[ws] new connection cols=${cols} rows=${rows}`);
+
+			let ptyProcess: pty.IPty;
+			try {
+				ptyProcess = pty.spawn(SHELL, ["--login"], {
+					name: "xterm-256color",
+					cols,
+					rows,
+					cwd: process.env.HOME || "/",
+					env: {
+						...process.env,
+						TERM: "xterm-256color",
+						COLORTERM: "truecolor",
+					} as Record<string, string>,
+				});
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				console.error(`[ws] PTY spawn failed: ${msg}`);
+				ws.send(`\r\n\x1b[31mPTY spawn failed: ${msg}\x1b[0m\r\n`);
+				ws.close();
+				return;
+			}
 
 			const id = String(ptyProcess.pid);
 			sessions.set(id, ptyProcess);
 			(ws.data as Record<string, unknown>).ptyId = id;
+			console.log(`[ws] PTY spawned pid=${id}`);
 
 			ptyProcess.onData((data: string) => {
 				try {
@@ -227,7 +240,10 @@ const server = Bun.serve({
 				}
 			});
 
-			ptyProcess.onExit(() => {
+			ptyProcess.onExit(({ exitCode, signal }) => {
+				console.log(
+					`[ws] PTY exited pid=${id} code=${exitCode} signal=${signal}`,
+				);
 				sessions.delete(id);
 				try {
 					ws.close();
@@ -261,6 +277,7 @@ const server = Bun.serve({
 			const id = (ws.data as Record<string, unknown>).ptyId as string;
 			const ptyProcess = sessions.get(id);
 			if (ptyProcess) {
+				console.log(`[ws] client disconnected, killing PTY pid=${id}`);
 				ptyProcess.kill();
 				sessions.delete(id);
 			}
