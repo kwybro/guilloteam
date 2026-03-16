@@ -51,10 +51,6 @@
         "typescript": "^5",
       },
     },
-    "apps/cli-preview": {
-      "name": "@guilloteam/cli-preview",
-      "version": "0.0.1",
-    },
     "apps/web": {
       "name": "web",
       "dependencies": {
@@ -321,8 +317,6 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
     "@guilloteam/cli": ["@guilloteam/cli@workspace:apps/cli"],
-
-    "@guilloteam/cli-preview": ["@guilloteam/cli-preview@workspace:apps/cli-preview"],
 
     "@guilloteam/data-ops": ["@guilloteam/data-ops@workspace:packages/data-ops"],
 
