@@ -6,6 +6,10 @@
  */
 import * as pty from "@lydell/node-pty";
 
+// Ignore SIGHUP at the parent level — container runtimes (Fly, Cloudflare)
+// send SIGHUP to the process group, which kills PTY children.
+process.on("SIGHUP", () => {});
+
 const PORT = Number(process.env.PORT) || 8080;
 const SHELL = process.env.SHELL || "/bin/bash";
 
@@ -208,7 +212,10 @@ const server = Bun.serve({
 
 			let ptyProcess: pty.IPty;
 			try {
-				ptyProcess = pty.spawn(SHELL, ["--login"], {
+				// Spawn bash with SIGHUP ignored BEFORE the login shell starts.
+				// trap "" HUP sets SIG_IGN, which is preserved across exec,
+				// so the login shell and its children are immune to SIGHUP.
+				ptyProcess = pty.spawn(SHELL, ["-c", 'trap "" HUP; exec bash --login'], {
 					name: "xterm-256color",
 					cols,
 					rows,
