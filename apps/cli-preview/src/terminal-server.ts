@@ -215,17 +215,21 @@ const server = Bun.serve({
 				// Spawn bash with SIGHUP ignored BEFORE the login shell starts.
 				// trap "" HUP sets SIG_IGN, which is preserved across exec,
 				// so the login shell and its children are immune to SIGHUP.
-				ptyProcess = pty.spawn(SHELL, ["-c", 'trap "" HUP; exec bash --login'], {
-					name: "xterm-256color",
-					cols,
-					rows,
-					cwd: process.env.HOME || "/",
-					env: {
-						...process.env,
-						TERM: "xterm-256color",
-						COLORTERM: "truecolor",
-					} as Record<string, string>,
-				});
+				ptyProcess = pty.spawn(
+					SHELL,
+					["-c", 'trap "" HUP; exec bash --login'],
+					{
+						name: "xterm-256color",
+						cols,
+						rows,
+						cwd: process.env.HOME || "/",
+						env: {
+							...process.env,
+							TERM: "xterm-256color",
+							COLORTERM: "truecolor",
+						} as Record<string, string>,
+					},
+				);
 			} catch (err) {
 				const msg = err instanceof Error ? err.message : String(err);
 				console.error(`[ws] PTY spawn failed: ${msg}`);
