@@ -1,6 +1,9 @@
-import { join } from "node:path";
-import { createProductContext, findProjectRoot } from "@guilloteam/core";
-import { createDrizzleLearningStore } from "@guilloteam/storage-drizzle";
+import {
+	createProductContext,
+	findProjectRoot,
+	readConfig,
+} from "@guilloteam/core";
+import { createRemoteLearningRepository } from "@guilloteam/learning-client";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
@@ -10,10 +13,13 @@ const result = (value: unknown) => ({
 
 export async function buildServer(start = process.cwd()) {
 	const root = await findProjectRoot(start);
-	const store = createDrizzleLearningStore(
-		join(root, ".guilloteam", "learning.db"),
+	const config = await readConfig(root);
+	const token = process.env.GUILLOTEAM_TOKEN;
+	if (!token) throw new Error("GUILLOTEAM_TOKEN is required.");
+	const context = createProductContext(
+		root,
+		createRemoteLearningRepository({ url: config.learning.url, token }),
 	);
-	const context = createProductContext(root, store);
 	const server = new McpServer({ name: "guilloteam", version: "0.1.0" });
 
 	server.registerTool(
@@ -85,5 +91,5 @@ export async function buildServer(start = process.cwd()) {
 		async (input) => result(await context.createEvidence(input)),
 	);
 
-	return { server, close: () => store.close() };
+	return { server };
 }

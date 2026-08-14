@@ -11,15 +11,17 @@ Guilloteam is a Product Context engine. It provides one conceptual surface over:
 - Evidence must cite existing Observations.
 - `@guilloteam/core` must stay independent of Drizzle and concrete storage.
 - Storage extension points are domain-shaped repository operations, not generic database methods.
-- `@guilloteam/storage-drizzle` is the reference SQLite implementation.
+- `@guilloteam/storage-postgres` is the self-hosted Postgres implementation.
 - MCP tool names must not expose physical storage boundaries.
 
 ## Monorepo
 
 - `apps/cli`: local initialization and human-facing commands.
 - `apps/mcp`: agent-facing MCP server.
+- `apps/service`: self-hosted Hono Learning API.
 - `packages/core`: domain model, repository contracts, and Product Context workflows.
 - `packages/sdk`: application integration API.
-- `packages/storage-drizzle`: Drizzle/Bun SQLite storage.
+- `packages/learning-client`: remote Learning protocol client.
+- `packages/storage-postgres`: Drizzle/Postgres storage.
 
 Use Bun, TypeScript, Biome, and `bun:test`.

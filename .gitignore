@@ -39,9 +39,3 @@ yarn-error.log*
 node_modules/
 dist/
 .turbo/
-.guilloteam/learning.db
-.guilloteam/learning.db-shm
-.guilloteam/learning.db-wal
-*.db
-*.db-shm
-*.db-wal
