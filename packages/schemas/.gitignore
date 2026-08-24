@@ -1,9 +1,0 @@
-# Dependencies
-node_modules
-
-# Cloudflare
-local.sqlite
-.wrangler
-
-# Environment
-.env

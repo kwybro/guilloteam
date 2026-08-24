@@ -1,9 +1,9 @@
 {
-	"name": "@guilloteam/cli",
+	"name": "@guilloteam/sdk",
 	"version": "0.1.0",
 	"type": "module",
-	"bin": {
-		"guilloteam": "./src/index.ts"
+	"exports": {
+		".": "./src/index.ts"
 	},
 	"scripts": {
 		"build": "bun build ./src/index.ts --target=bun --outdir=dist",
@@ -12,8 +12,7 @@
 	},
 	"dependencies": {
 		"@guilloteam/core": "workspace:*",
-		"@guilloteam/storage-drizzle": "workspace:*",
-		"citty": "^0.1.6"
+		"@guilloteam/storage-drizzle": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.3.8",
