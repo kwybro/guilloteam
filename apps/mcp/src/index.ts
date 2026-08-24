@@ -2,6 +2,5 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { buildServer } from "./server";
 
-const { server, close } = await buildServer();
-process.on("exit", close);
+const { server } = await buildServer();
 await server.connect(new StdioServerTransport());

@@ -12,7 +12,7 @@
 	},
 	"dependencies": {
 		"@guilloteam/core": "workspace:*",
-		"@guilloteam/storage-drizzle": "workspace:*",
+		"@guilloteam/learning-client": "workspace:*",
 		"citty": "^0.1.6"
 	},
 	"devDependencies": {

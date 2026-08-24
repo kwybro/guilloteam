@@ -1,12 +1,23 @@
 #!/usr/bin/env bun
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
 	createProductContext,
 	findProjectRoot,
 	initializeProject,
+	readConfig,
 } from "@guilloteam/core";
-import { createDrizzleLearningStore } from "@guilloteam/storage-drizzle";
+import { createRemoteLearningRepository } from "@guilloteam/learning-client";
 import { defineCommand, runMain } from "citty";
+
+async function connect(root: string) {
+	const config = await readConfig(root);
+	const token = process.env.GUILLOTEAM_TOKEN;
+	if (!token) throw new Error("GUILLOTEAM_TOKEN is required.");
+	return createRemoteLearningRepository({
+		url: config.learning.url,
+		token,
+	});
+}
 
 const main = defineCommand({
 	meta: {
@@ -18,10 +29,11 @@ const main = defineCommand({
 		init: defineCommand({
 			meta: { description: "Initialize Product Context in a repository" },
 			args: {
-				name: {
-					type: "positional",
-					description: "Product name",
-					required: false,
+				name: { type: "positional", description: "Product name" },
+				url: {
+					type: "string",
+					default: "http://localhost:3400",
+					description: "Guilloteam service URL",
 				},
 			},
 			async run({ args }) {
@@ -31,13 +43,10 @@ const main = defineCommand({
 					typeof args.name === "string"
 						? args.name
 						: (root.split("/").at(-1) ?? "Product"),
+					String(args.url),
 				);
-				const store = createDrizzleLearningStore(result.databasePath);
-				store.close();
 				console.log(`Initialized Guilloteam in ${result.contextDirectory}`);
-				console.log(
-					"Next: edit .guilloteam/intent, then run guilloteam observe <text>",
-				);
+				console.log("Set GUILLOTEAM_TOKEN, then edit .guilloteam/intent.");
 			},
 		}),
 		observe: defineCommand({
@@ -50,35 +59,35 @@ const main = defineCommand({
 			},
 			async run({ args }) {
 				const root = await findProjectRoot(process.cwd());
-				const store = createDrizzleLearningStore(
-					join(root, ".guilloteam", "learning.db"),
+				const context = createProductContext(root, await connect(root));
+				console.log(
+					JSON.stringify(
+						await context.observe({
+							type: String(args.type),
+							content: String(args.content),
+							source: typeof args.source === "string" ? args.source : undefined,
+							actorId: typeof args.actor === "string" ? args.actor : undefined,
+						}),
+						null,
+						2,
+					),
 				);
-				const context = createProductContext(root, store);
-				const observation = await context.observe({
-					type: String(args.type),
-					content: String(args.content),
-					source: typeof args.source === "string" ? args.source : undefined,
-					actorId: typeof args.actor === "string" ? args.actor : undefined,
-				});
-				store.close();
-				console.log(JSON.stringify(observation, null, 2));
 			},
 		}),
 		context: defineCommand({
 			meta: { description: "Print the complete Product Context" },
 			async run() {
 				const root = await findProjectRoot(process.cwd());
-				const store = createDrizzleLearningStore(
-					join(root, ".guilloteam", "learning.db"),
-				);
 				console.log(
 					JSON.stringify(
-						await createProductContext(root, store).getProductContext(),
+						await createProductContext(
+							root,
+							await connect(root),
+						).getProductContext(),
 						null,
 						2,
 					),
 				);
-				store.close();
 			},
 		}),
 	},

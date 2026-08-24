@@ -1,32 +1,16 @@
-import { join, resolve } from "node:path";
-import type { LearningRepository } from "@guilloteam/core";
-import { createProductContext } from "@guilloteam/core";
-import { createDrizzleLearningStore } from "@guilloteam/storage-drizzle";
+import type { ObservationInput } from "@guilloteam/core";
+import { createRemoteLearningRepository } from "@guilloteam/learning-client";
 
 export interface GuilloteamOptions {
-	root?: string;
-	learning?: LearningRepository;
+	url: string;
+	token: string;
 }
 
-export function createGuilloteam(options: GuilloteamOptions = {}) {
-	const root = resolve(options.root ?? process.cwd());
-	const ownedStore = options.learning
-		? undefined
-		: createDrizzleLearningStore(join(root, ".guilloteam", "learning.db"));
-	const learning = options.learning ?? ownedStore;
-	if (!learning) throw new Error("A Learning repository is required.");
-	const service = createProductContext(root, learning);
+export function createGuilloteam(options: GuilloteamOptions) {
+	const learning = createRemoteLearningRepository(options);
 	return {
-		...service,
-		close: () => ownedStore?.close(),
+		observe: (input: ObservationInput) => learning.createObservation(input),
 	};
 }
 
-export type {
-	Evidence,
-	EvidenceInput,
-	Intent,
-	LearningRepository,
-	Observation,
-	ObservationInput,
-} from "@guilloteam/core";
+export type { Observation, ObservationInput } from "@guilloteam/core";

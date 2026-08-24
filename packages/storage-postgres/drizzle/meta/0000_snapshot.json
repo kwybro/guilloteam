@@ -1,0 +1,236 @@
+{
+	"id": "661fa090-41c6-4bf4-b6f8-fee9af149c7a",
+	"prevId": "00000000-0000-0000-0000-000000000000",
+	"version": "7",
+	"dialect": "postgresql",
+	"tables": {
+		"public.evidence": {
+			"name": "evidence",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"title": {
+					"name": "title",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"claim": {
+					"name": "claim",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"confidence": {
+					"name": "confidence",
+					"type": "evidence_confidence",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"rationale": {
+					"name": "rationale",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"intent_references": {
+					"name": "intent_references",
+					"type": "jsonb",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'[]'::jsonb"
+				},
+				"created_by": {
+					"name": "created_by",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.evidence_observations": {
+			"name": "evidence_observations",
+			"schema": "",
+			"columns": {
+				"evidence_id": {
+					"name": "evidence_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"observation_id": {
+					"name": "observation_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				}
+			},
+			"indexes": {
+				"evidence_observations_observation_idx": {
+					"name": "evidence_observations_observation_idx",
+					"columns": [
+						{
+							"expression": "observation_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"evidence_observations_evidence_id_evidence_id_fk": {
+					"name": "evidence_observations_evidence_id_evidence_id_fk",
+					"tableFrom": "evidence_observations",
+					"tableTo": "evidence",
+					"columnsFrom": ["evidence_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"evidence_observations_observation_id_observations_id_fk": {
+					"name": "evidence_observations_observation_id_observations_id_fk",
+					"tableFrom": "evidence_observations",
+					"tableTo": "observations",
+					"columnsFrom": ["observation_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {
+				"evidence_observations_evidence_id_observation_id_pk": {
+					"name": "evidence_observations_evidence_id_observation_id_pk",
+					"columns": ["evidence_id", "observation_id"]
+				}
+			},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.observations": {
+			"name": "observations",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"type": {
+					"name": "type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"content": {
+					"name": "content",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"source": {
+					"name": "source",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"actor_id": {
+					"name": "actor_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"metadata": {
+					"name": "metadata",
+					"type": "jsonb",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'{}'::jsonb"
+				},
+				"observed_at": {
+					"name": "observed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"observations_observed_at_idx": {
+					"name": "observations_observed_at_idx",
+					"columns": [
+						{
+							"expression": "observed_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		}
+	},
+	"enums": {
+		"public.evidence_confidence": {
+			"name": "evidence_confidence",
+			"schema": "public",
+			"values": ["low", "medium", "high"]
+		}
+	},
+	"schemas": {},
+	"sequences": {},
+	"roles": {},
+	"policies": {},
+	"views": {},
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	}
+}

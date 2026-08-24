@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "guilloteam",
+      "dependencies": {
+        "zod": "^4.4.3",
+      },
       "devDependencies": {
         "@biomejs/biome": "2.3.14",
         "@types/bun": "^1.3.8",
@@ -19,7 +22,7 @@
       },
       "dependencies": {
         "@guilloteam/core": "workspace:*",
-        "@guilloteam/storage-drizzle": "workspace:*",
+        "@guilloteam/learning-client": "workspace:*",
         "citty": "^0.1.6",
       },
       "devDependencies": {
@@ -35,9 +38,23 @@
       },
       "dependencies": {
         "@guilloteam/core": "workspace:*",
-        "@guilloteam/storage-drizzle": "workspace:*",
+        "@guilloteam/learning-client": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.17.5",
         "zod": "^4.3.6",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.8",
+        "typescript": "^5.9.2",
+      },
+    },
+    "apps/service": {
+      "name": "@guilloteam/service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@guilloteam/core": "workspace:*",
+        "@guilloteam/learning-client": "workspace:*",
+        "@guilloteam/storage-postgres": "workspace:*",
+        "hono": "^4.10.8",
       },
       "devDependencies": {
         "@types/bun": "^1.3.8",
@@ -55,24 +72,36 @@
         "typescript": "^5.9.2",
       },
     },
-    "packages/sdk": {
-      "name": "@guilloteam/sdk",
+    "packages/learning-client": {
+      "name": "@guilloteam/learning-client",
       "version": "0.1.0",
       "dependencies": {
         "@guilloteam/core": "workspace:*",
-        "@guilloteam/storage-drizzle": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.8",
         "typescript": "^5.9.2",
       },
     },
-    "packages/storage-drizzle": {
-      "name": "@guilloteam/storage-drizzle",
+    "packages/sdk": {
+      "name": "@guilloteam/sdk",
+      "version": "0.1.0",
+      "dependencies": {
+        "@guilloteam/core": "workspace:*",
+        "@guilloteam/learning-client": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.8",
+        "typescript": "^5.9.2",
+      },
+    },
+    "packages/storage-postgres": {
+      "name": "@guilloteam/storage-postgres",
       "version": "0.1.0",
       "dependencies": {
         "@guilloteam/core": "workspace:*",
         "drizzle-orm": "^0.45.1",
+        "postgres": "^3.4.7",
       },
       "devDependencies": {
         "@types/bun": "^1.3.8",
@@ -162,11 +191,15 @@
 
     "@guilloteam/core": ["@guilloteam/core@workspace:packages/core"],
 
+    "@guilloteam/learning-client": ["@guilloteam/learning-client@workspace:packages/learning-client"],
+
     "@guilloteam/mcp": ["@guilloteam/mcp@workspace:apps/mcp"],
 
     "@guilloteam/sdk": ["@guilloteam/sdk@workspace:packages/sdk"],
 
-    "@guilloteam/storage-drizzle": ["@guilloteam/storage-drizzle@workspace:packages/storage-drizzle"],
+    "@guilloteam/service": ["@guilloteam/service@workspace:apps/service"],
+
+    "@guilloteam/storage-postgres": ["@guilloteam/storage-postgres@workspace:packages/storage-postgres"],
 
     "@hono/node-server": ["@hono/node-server@2.1.0", "", { "peerDependencies": { "hono": "^4" } }, "sha512-XovyyCCnBzW+zKu+z/zq8hwNs4KOR5rEMAOxo2f40Q5xoOI37IMm6MIg2COOUtUApo0i6850MTBKH2u4QLGIqg=="],
 
@@ -333,6 +366,8 @@
     "path-to-regexp": ["path-to-regexp@8.4.2", "", {}, "sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA=="],
 
     "pkce-challenge": ["pkce-challenge@5.0.1", "", {}, "sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ=="],
+
+    "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 
     "proxy-addr": ["proxy-addr@2.0.7", "", { "dependencies": { "forwarded": "0.2.0", "ipaddr.js": "1.9.1" } }, "sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg=="],
 

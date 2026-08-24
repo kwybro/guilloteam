@@ -8,7 +8,9 @@
 		"lint:fix": "biome check . --write",
 		"check-types": "turbo run check-types",
 		"guilloteam": "bun run apps/cli/src/index.ts",
-		"mcp": "bun run apps/mcp/src/index.ts"
+		"mcp": "bun run apps/mcp/src/index.ts",
+		"service": "bun run apps/service/src/index.ts",
+		"service:up": "docker compose up --build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.14",
@@ -23,5 +25,8 @@
 	"workspaces": [
 		"apps/*",
 		"packages/*"
-	]
+	],
+	"dependencies": {
+		"zod": "^4.4.3"
+	}
 }
