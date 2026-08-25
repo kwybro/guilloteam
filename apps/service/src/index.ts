@@ -11,7 +11,7 @@ if (!databaseUrl || !ingestToken || !agentToken) {
 }
 const store = createPostgresLearningStore(databaseUrl);
 await store.migrate();
-const app = createServiceApp(store, { ingestToken, agentToken });
+const app = createServiceApp(store, store, { ingestToken, agentToken });
 
 export default {
 	port: Number(process.env.PORT ?? 3400),
