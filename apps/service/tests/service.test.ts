@@ -312,6 +312,9 @@ describe("self-hosted Learning service", () => {
 		const updatedInput = await agent.updateInput(input.id, {
 			description: "Owners cannot recover when an invitation expires.",
 		});
+		if (!updatedInput) {
+			throw new Error("Expected the Input update to return the updated Input.");
+		}
 		expect(updatedInput.description).toContain("expires");
 		const queue = await agent.createQueue({ name: "Execution Queue" });
 		const invitationRecovery = await agent.createQueueItem({
