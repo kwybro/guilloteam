@@ -1,4 +1,10 @@
-# Execution Queue v0 Requirements
+# Execution Queue v0 Requirements (Superseded)
+
+> This document captures the earlier Input/Queue Item implementation direction.
+> It is superseded by [Noise-to-Execution Product Direction](./noise-to-execution-direction.md),
+> which records the ratified Team → Project → Noise → Initiative → Queue model.
+> Keep this file only as historical context until the new implementation plan
+> replaces it.
 
 ## Purpose
 
