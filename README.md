@@ -1,17 +1,19 @@
 # Guilloteam
 
-Guilloteam is an open-source Product Context engine for teams and their agents.
-It combines Git-versioned **Intent** with continuously shared **Learning**.
+Guilloteam is an open-source, self-hostable shared execution system for teams
+and their agents.
 
 ```text
-Local repository Intent + self-hosted Learning → local MCP → your agent
+Noise → Initiative Workshop → user-curated Queue → execution → outcome
 ```
 
-Guilloteam owns context and deterministic workflows. It does not own inference.
+Teams own Projects. Each Project has its own Noise, Workshop, execution queue,
+and outcomes. Agents synthesize and shape work; users retain the authority to
+graduate, start, and complete it.
 
-## Run the Learning service
+## Run the service
 
-The companion service bundles a Hono API, Drizzle migrations, and Postgres:
+The service bundles the Project API, Drizzle migrations, and Postgres:
 
 ```bash
 docker compose up --build
@@ -21,56 +23,32 @@ Local credentials are defined in `docker-compose.yml`:
 
 - ingest token: `local-ingest-token`
 - agent token: `local-agent-token`
+- user token: `local-user-token` (required for queue graduation, starting, and
+  completion)
 
-## Initialize a repository
+## Connect an MCP agent
 
-```bash
-bun run guilloteam init "My Product" --url http://localhost:3400
-export GUILLOTEAM_TOKEN=local-agent-token
+The MCP bridge needs only the service URL and agent token. It has no repository
+or `init` dependency. Configure an MCP client with the equivalent of:
+
+```toml
+[mcp_servers.guilloteam]
+command = "bun"
+args = ["run", "/absolute/path/to/guilloteam/apps/mcp/src/index.ts"]
+
+[mcp_servers.guilloteam.env]
+GUILLOTEAM_URL = "http://localhost:3400"
+GUILLOTEAM_TOKEN = "local-agent-token"
 ```
 
-Edit `.guilloteam/intent/constitution.md` and
-`.guilloteam/intent/world-model.md`, then record Learning:
-
-```bash
-bun run guilloteam observe "I wish I could organize projects" --type user_feedback
-bun run guilloteam context
-```
-
-Run the local MCP bridge from the initialized repository:
-
-```bash
-bun run mcp
-```
-
-The bridge reads local Intent and queries the shared Learning service, presenting
-one Product Context surface to the connected agent.
-
-## Application SDK
-
-Deployed applications use an ingest-scoped token:
-
-```ts
-import { createGuilloteam } from "@guilloteam/sdk";
-
-const guilloteam = createGuilloteam({
-  url: process.env.GUILLOTEAM_URL!,
-  token: process.env.GUILLOTEAM_INGEST_TOKEN!,
-});
-
-await guilloteam.observe({
-  type: "user_feedback",
-  content: feedback,
-  source: "feedback_form",
-});
-```
+The agent can create Teams and Projects; capture, retrieve, and synthesize
+Noise; develop Workshop Initiatives; and inspect the queue. The user-facing
+application or API performs graduation, start-next, and completion.
 
 ## Architecture
 
-- `apps/service`: self-hosted Hono Learning API.
-- `apps/mcp`: local bridge combining repository Intent with remote Learning.
-- `apps/cli`: repository initialization and local commands.
-- `packages/core`: Product Context domain and workflows.
-- `packages/learning-client`: HTTP implementation of `LearningRepository`.
+- `apps/service`: self-hosted Hono Project API.
+- `apps/mcp`: Project-first MCP adapter over that API.
+- `packages/core`: Team, Project, Noise, Initiative, and Queue workflows.
+- `packages/learning-client`: typed HTTP client for the Project API.
 - `packages/storage-postgres`: Drizzle/Postgres implementation.
-- `packages/sdk`: deployed application ingestion API.

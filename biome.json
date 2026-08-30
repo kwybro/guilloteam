@@ -7,7 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!**/routeTree.gen.ts", "!apps/web/src/components/ui"]
+		"includes": [
+			"**",
+			"!**/routeTree.gen.ts",
+			"!apps/web/src/components/ui",
+			"!packages/storage-postgres/drizzle/meta"
+		]
 	},
 	"formatter": {
 		"enabled": true,

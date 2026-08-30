@@ -85,6 +85,105 @@ export interface CompleteQueueItemInput {
 	completionSummary?: string;
 }
 
+export interface TeamInput {
+	name: string;
+	ownerId: string;
+}
+
+export interface JoinTeamInput {
+	userId: string;
+}
+
+export interface ProjectInput {
+	name: string;
+	userId: string;
+}
+
+export interface TeamCreate {
+	name: string;
+	ownerId: string;
+}
+
+export interface ProjectCreate {
+	teamId: string;
+	name: string;
+	createdByUserId: string;
+}
+
+export interface NoiseInput {
+	content: string;
+	source: string;
+	userId: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface NoiseCreate {
+	projectId: string;
+	content: string;
+	source: string;
+	capturedByUserId: string;
+	metadata: Record<string, unknown>;
+}
+
+export interface SynthesizeNoiseInput {
+	statement: string;
+	noiseIds: string[];
+	userId: string;
+}
+
+export interface InitiativeCreate {
+	projectId: string;
+	statement: string;
+	noiseIds: string[];
+}
+
+export interface AttachInitiativeNoiseInput {
+	noiseIds: string[];
+	userId: string;
+}
+
+export interface NoOpSynthesisInput {
+	noiseIds: string[];
+	rationale: string;
+	userId: string;
+}
+
+export interface NoOpSynthesisCreate {
+	projectId: string;
+	noiseIds: string[];
+	rationale: string;
+	requestedByUserId: string;
+}
+
+export interface UpdateInitiativeInput {
+	statement: string;
+	userId: string;
+}
+
+export interface MergeInitiativesInput {
+	absorbedInitiativeIds: string[];
+	userId: string;
+}
+
+export interface InitiativeMergeCreate {
+	survivingInitiativeId: string;
+	absorbedInitiativeIds: string[];
+	mergedByUserId: string;
+}
+
+export interface GraduateInitiativeInput {
+	userId: string;
+}
+
+export interface StartNextInitiativeInput {
+	userId: string;
+}
+
+export interface CompleteInitiativeInput {
+	userId: string;
+	outcomeSummary: string;
+}
+
 function inputRecord(raw: unknown) {
 	if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
 		throw new Error("Expected an object.");
@@ -103,9 +202,36 @@ function optionalInputText(value: unknown, field: string) {
 	return value === undefined ? undefined : inputText(value, field);
 }
 
+function inputMetadata(value: unknown) {
+	if (value === undefined) return {};
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		throw new Error("metadata must be an object.");
+	}
+	return value as Record<string, unknown>;
+}
+
 function inputIds(value: unknown) {
 	if (!Array.isArray(value)) throw new Error("inputIds must be an array.");
 	return value.map((id) => inputText(id, "inputIds"));
+}
+
+function inputNoiseIds(value: unknown) {
+	if (!Array.isArray(value)) throw new Error("noiseIds must be an array.");
+	if (!value.length)
+		throw new Error("noiseIds must contain at least one Noise ID.");
+	return value.map((id) => inputText(id, "noiseIds"));
+}
+
+function inputInitiativeIds(value: unknown) {
+	if (!Array.isArray(value)) {
+		throw new Error("absorbedInitiativeIds must be an array.");
+	}
+	if (!value.length) {
+		throw new Error(
+			"absorbedInitiativeIds must contain at least one Initiative ID.",
+		);
+	}
+	return value.map((id) => inputText(id, "absorbedInitiativeIds"));
 }
 
 function inputPosition(value: unknown) {
@@ -190,6 +316,106 @@ export function parseCompleteQueueItemInput(
 	};
 }
 
+export function parseTeamInput(raw: unknown): TeamInput {
+	const input = inputRecord(raw);
+	return {
+		name: inputText(input.name, "name"),
+		ownerId: inputText(input.ownerId, "ownerId"),
+	};
+}
+
+export function parseJoinTeamInput(raw: unknown): JoinTeamInput {
+	return { userId: inputText(inputRecord(raw).userId, "userId") };
+}
+
+export function parseProjectInput(raw: unknown): ProjectInput {
+	const input = inputRecord(raw);
+	return {
+		name: inputText(input.name, "name"),
+		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseNoiseInput(raw: unknown): NoiseInput {
+	const input = inputRecord(raw);
+	return {
+		content: inputText(input.content, "content"),
+		source: inputText(input.source, "source"),
+		userId: inputText(input.userId, "userId"),
+		metadata: inputMetadata(input.metadata),
+	};
+}
+
+export function parseSynthesizeNoiseInput(raw: unknown): SynthesizeNoiseInput {
+	const input = inputRecord(raw);
+	return {
+		statement: inputText(input.statement, "statement"),
+		noiseIds: inputNoiseIds(input.noiseIds),
+		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseAttachInitiativeNoiseInput(
+	raw: unknown,
+): AttachInitiativeNoiseInput {
+	const input = inputRecord(raw);
+	return {
+		noiseIds: inputNoiseIds(input.noiseIds),
+		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseNoOpSynthesisInput(raw: unknown): NoOpSynthesisInput {
+	const input = inputRecord(raw);
+	return {
+		noiseIds: inputNoiseIds(input.noiseIds),
+		rationale: inputText(input.rationale, "rationale"),
+		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseUpdateInitiativeInput(
+	raw: unknown,
+): UpdateInitiativeInput {
+	const input = inputRecord(raw);
+	return {
+		statement: inputText(input.statement, "statement"),
+		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseMergeInitiativesInput(
+	raw: unknown,
+): MergeInitiativesInput {
+	const input = inputRecord(raw);
+	return {
+		absorbedInitiativeIds: inputInitiativeIds(input.absorbedInitiativeIds),
+		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseGraduateInitiativeInput(
+	raw: unknown,
+): GraduateInitiativeInput {
+	return { userId: inputText(inputRecord(raw).userId, "userId") };
+}
+
+export function parseStartNextInitiativeInput(
+	raw: unknown,
+): StartNextInitiativeInput {
+	return { userId: inputText(inputRecord(raw).userId, "userId") };
+}
+
+export function parseCompleteInitiativeInput(
+	raw: unknown,
+): CompleteInitiativeInput {
+	const input = inputRecord(raw);
+	return {
+		userId: inputText(input.userId, "userId"),
+		outcomeSummary: inputText(input.outcomeSummary, "outcomeSummary"),
+	};
+}
+
 export interface Observation {
 	id: string;
 	type: string;
@@ -250,6 +476,84 @@ export interface QueueItem {
 	completionSummary?: string;
 }
 
+export interface Team {
+	id: string;
+	name: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export type TeamMemberRole = "owner" | "member";
+
+export interface TeamMember {
+	teamId: string;
+	userId: string;
+	role: TeamMemberRole;
+	createdAt: string;
+}
+
+export interface Project {
+	id: string;
+	teamId: string;
+	name: string;
+	createdByUserId: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ProjectWorkspace {
+	projectId: string;
+	noiseCount: number;
+	workshopCount: number;
+	queueCount: number;
+	outcomeCount: number;
+}
+
+export interface Noise {
+	id: string;
+	projectId: string;
+	content: string;
+	source: string;
+	capturedByUserId: string;
+	metadata: Record<string, unknown>;
+	createdAt: string;
+}
+
+export type InitiativeState = "signal" | "queued" | "executing" | "completed";
+
+export interface Initiative {
+	id: string;
+	projectId: string;
+	statement: string;
+	state: InitiativeState;
+	noiseIds: string[];
+	createdAt: string;
+	updatedAt: string;
+	mergedIntoInitiativeId?: string;
+	startedAt?: string;
+	startedByUserId?: string;
+	completedAt?: string;
+	completedByUserId?: string;
+	outcomeSummary?: string;
+}
+
+export interface InitiativeQueueEntry {
+	initiativeId: string;
+	projectId: string;
+	position: number;
+	queuedByUserId: string;
+	queuedAt: string;
+}
+
+export interface NoOpSynthesis {
+	id: string;
+	projectId: string;
+	rationale: string;
+	requestedByUserId: string;
+	noiseIds: string[];
+	createdAt: string;
+}
+
 export interface LearningRepository {
 	createObservation(input: ObservationInput): Promise<Observation>;
 	listObservations(options?: {
@@ -298,4 +602,67 @@ export interface QueueRepository {
 		id: string,
 		input: CompleteQueueItemInput,
 	): Promise<QueueItem | undefined>;
+}
+
+export interface TeamProjectRepository {
+	createTeam(input: TeamCreate): Promise<Team>;
+	getTeam(id: string): Promise<Team | undefined>;
+	joinTeam(teamId: string, userId: string): Promise<TeamMember>;
+	getTeamMember(
+		teamId: string,
+		userId: string,
+	): Promise<TeamMember | undefined>;
+	createProject(input: ProjectCreate): Promise<Project>;
+	getProject(id: string): Promise<Project | undefined>;
+}
+
+export interface ProjectNoiseRepository {
+	createNoise(input: NoiseCreate): Promise<Noise>;
+	getNoise(ids: string[]): Promise<Noise[]>;
+	listNoise(projectId: string, options?: { limit?: number }): Promise<Noise[]>;
+	countNoise(projectId: string): Promise<number>;
+}
+
+export interface ProjectInitiativeRepository {
+	createInitiative(input: InitiativeCreate): Promise<Initiative>;
+	getInitiative(id: string): Promise<Initiative | undefined>;
+	attachNoise(initiativeId: string, noiseIds: string[]): Promise<Initiative>;
+	updateInitiative(
+		id: string,
+		statement: string,
+	): Promise<Initiative | undefined>;
+	mergeInitiatives(input: InitiativeMergeCreate): Promise<Initiative>;
+	graduateInitiative(
+		initiativeId: string,
+		projectId: string,
+		queuedByUserId: string,
+	): Promise<Initiative | undefined>;
+	startNextInitiative(
+		projectId: string,
+		startedByUserId: string,
+	): Promise<Initiative | undefined>;
+	completeInitiative(
+		initiativeId: string,
+		completedByUserId: string,
+		outcomeSummary: string,
+	): Promise<Initiative | undefined>;
+	listWorkshopInitiatives(
+		projectId: string,
+		options?: { limit?: number },
+	): Promise<Initiative[]>;
+	countWorkshopInitiatives(projectId: string): Promise<number>;
+	listInitiativeQueue(
+		projectId: string,
+		options?: { limit?: number },
+	): Promise<InitiativeQueueEntry[]>;
+	countInitiativeQueue(projectId: string): Promise<number>;
+	countOutcomes(projectId: string): Promise<number>;
+}
+
+export interface ProjectNoOpSynthesisRepository {
+	createNoOpSynthesis(input: NoOpSynthesisCreate): Promise<NoOpSynthesis>;
+	listNoOpSyntheses(
+		projectId: string,
+		options?: { limit?: number },
+	): Promise<NoOpSynthesis[]>;
 }
