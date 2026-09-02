@@ -110,6 +110,16 @@ export interface ProjectCreate {
 	createdByUserId: string;
 }
 
+export interface WorkspaceFocusInput {
+	userId: string;
+	teamId: string;
+	projectId: string;
+}
+
+export interface WorkspaceFocus extends WorkspaceFocusInput {
+	updatedAt: string;
+}
+
 export interface NoiseInput {
 	content: string;
 	source: string;
@@ -333,6 +343,15 @@ export function parseProjectInput(raw: unknown): ProjectInput {
 	return {
 		name: inputText(input.name, "name"),
 		userId: inputText(input.userId, "userId"),
+	};
+}
+
+export function parseWorkspaceFocusInput(raw: unknown): WorkspaceFocusInput {
+	const input = inputRecord(raw);
+	return {
+		userId: inputText(input.userId, "userId"),
+		teamId: inputText(input.teamId, "teamId"),
+		projectId: inputText(input.projectId, "projectId"),
 	};
 }
 
@@ -607,6 +626,7 @@ export interface QueueRepository {
 export interface TeamProjectRepository {
 	createTeam(input: TeamCreate): Promise<Team>;
 	getTeam(id: string): Promise<Team | undefined>;
+	listTeamsForUser(userId: string): Promise<Team[]>;
 	joinTeam(teamId: string, userId: string): Promise<TeamMember>;
 	getTeamMember(
 		teamId: string,
@@ -614,6 +634,12 @@ export interface TeamProjectRepository {
 	): Promise<TeamMember | undefined>;
 	createProject(input: ProjectCreate): Promise<Project>;
 	getProject(id: string): Promise<Project | undefined>;
+	listProjects(teamId: string): Promise<Project[]>;
+}
+
+export interface WorkspaceFocusRepository {
+	getWorkspaceFocus(userId: string): Promise<WorkspaceFocus | undefined>;
+	setWorkspaceFocus(input: WorkspaceFocusInput): Promise<WorkspaceFocus>;
 }
 
 export interface ProjectNoiseRepository {
