@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -7,7 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!**/routeTree.gen.ts", "!apps/web/src/components/ui"]
+		"includes": [
+			"**",
+			"!**/routeTree.gen.ts",
+			"!apps/web/src/components/ui",
+			"!packages/storage-postgres/drizzle/meta"
+		]
 	},
 	"formatter": {
 		"enabled": true,
@@ -16,7 +21,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"preset": "recommended"
 		}
 	},
 	"css": {

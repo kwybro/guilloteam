@@ -4,14 +4,19 @@ import { createServiceApp } from "./app";
 const databaseUrl = process.env.DATABASE_URL;
 const ingestToken = process.env.GUILLOTEAM_INGEST_TOKEN;
 const agentToken = process.env.GUILLOTEAM_AGENT_TOKEN;
-if (!databaseUrl || !ingestToken || !agentToken) {
+const userToken = process.env.GUILLOTEAM_USER_TOKEN;
+if (!databaseUrl || !ingestToken || !agentToken || !userToken) {
 	throw new Error(
-		"DATABASE_URL, GUILLOTEAM_INGEST_TOKEN, and GUILLOTEAM_AGENT_TOKEN are required.",
+		"DATABASE_URL, GUILLOTEAM_INGEST_TOKEN, GUILLOTEAM_AGENT_TOKEN, and GUILLOTEAM_USER_TOKEN are required.",
 	);
 }
 const store = createPostgresLearningStore(databaseUrl);
 await store.migrate();
-const app = createServiceApp(store, store, { ingestToken, agentToken });
+const app = createServiceApp(store, store, store, {
+	ingestToken,
+	agentToken,
+	userToken,
+});
 
 export default {
 	port: Number(process.env.PORT ?? 3400),

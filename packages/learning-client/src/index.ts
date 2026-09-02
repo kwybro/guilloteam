@@ -1,13 +1,25 @@
 import type {
+	AttachInitiativeNoiseInput,
 	CompleteQueueItemInput,
 	Evidence,
 	EvidenceInput,
+	Initiative,
+	InitiativeQueueEntry,
 	Input,
 	InputInput,
 	InputUpdate,
+	JoinTeamInput,
 	LearningRepository,
+	MergeInitiativesInput,
+	Noise,
+	NoiseInput,
+	NoOpSynthesis,
+	NoOpSynthesisInput,
 	Observation,
 	ObservationInput,
+	Project,
+	ProjectInput,
+	ProjectWorkspace,
 	Queue,
 	QueueInput,
 	QueueItem,
@@ -16,6 +28,11 @@ import type {
 	QueueItemUpdate,
 	QueueRepository,
 	QueueUpdate,
+	SynthesizeNoiseInput,
+	Team,
+	TeamInput,
+	TeamMember,
+	UpdateInitiativeInput,
 } from "@guilloteam/core";
 
 export interface RemoteLearningOptions {
@@ -169,5 +186,137 @@ export function createRemoteQueueRepository(
 				method: "POST",
 				body: JSON.stringify(input),
 			}),
+	};
+}
+
+export interface RemoteProjectWorkspaceClient {
+	createTeam(input: TeamInput): Promise<Team>;
+	joinTeam(teamId: string, input: JoinTeamInput): Promise<TeamMember>;
+	createProject(teamId: string, input: ProjectInput): Promise<Project>;
+	getProjectWorkspace(projectId: string): Promise<ProjectWorkspace>;
+	captureNoise(projectId: string, input: NoiseInput): Promise<Noise>;
+	listNoise(projectId: string, options?: { limit?: number }): Promise<Noise[]>;
+	synthesizeNoise(
+		projectId: string,
+		input: SynthesizeNoiseInput,
+	): Promise<Initiative>;
+	getInitiative(projectId: string, initiativeId: string): Promise<Initiative>;
+	updateInitiative(
+		projectId: string,
+		initiativeId: string,
+		input: UpdateInitiativeInput,
+	): Promise<Initiative>;
+	attachNoiseToInitiative(
+		projectId: string,
+		initiativeId: string,
+		input: AttachInitiativeNoiseInput,
+	): Promise<Initiative>;
+	mergeInitiatives(
+		projectId: string,
+		initiativeId: string,
+		input: MergeInitiativesInput,
+	): Promise<Initiative>;
+	deferNoiseSynthesis(
+		projectId: string,
+		input: NoOpSynthesisInput,
+	): Promise<NoOpSynthesis>;
+	listDeferredSyntheses(
+		projectId: string,
+		options?: { limit?: number },
+	): Promise<NoOpSynthesis[]>;
+	listWorkshopInitiatives(
+		projectId: string,
+		options?: { limit?: number },
+	): Promise<Initiative[]>;
+	listInitiativeQueue(
+		projectId: string,
+		options?: { limit?: number },
+	): Promise<InitiativeQueueEntry[]>;
+}
+
+function projectPath(projectId: string) {
+	return `/v1/projects/${encodeURIComponent(projectId)}`;
+}
+
+function optionalLimit(options?: { limit?: number }) {
+	return options?.limit ? `?limit=${options.limit}` : "";
+}
+
+/**
+ * Agent-authorized Project workflows exposed by the Guilloteam HTTP service.
+ * The web app and MCP server use this same API surface.
+ */
+export function createRemoteProjectWorkspaceClient(
+	options: RemoteLearningOptions,
+): RemoteProjectWorkspaceClient {
+	const request = createRemoteRequest(options);
+	return {
+		createTeam: (input) =>
+			request<Team>("/v1/teams", {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		joinTeam: (teamId, input) =>
+			request<TeamMember>(`/v1/teams/${encodeURIComponent(teamId)}/members`, {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		createProject: (teamId, input) =>
+			request<Project>(`/v1/teams/${encodeURIComponent(teamId)}/projects`, {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		getProjectWorkspace: (projectId) =>
+			request<ProjectWorkspace>(`${projectPath(projectId)}/workspace`),
+		captureNoise: (projectId, input) =>
+			request<Noise>(`${projectPath(projectId)}/noise`, {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		listNoise: (projectId, options) =>
+			request<Noise[]>(
+				`${projectPath(projectId)}/noise${optionalLimit(options)}`,
+			),
+		synthesizeNoise: (projectId, input) =>
+			request<Initiative>(`${projectPath(projectId)}/initiatives/synthesize`, {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		getInitiative: (projectId, initiativeId) =>
+			request<Initiative>(
+				`${projectPath(projectId)}/initiatives/${encodeURIComponent(initiativeId)}`,
+			),
+		updateInitiative: (projectId, initiativeId, input) =>
+			request<Initiative>(
+				`${projectPath(projectId)}/initiatives/${encodeURIComponent(initiativeId)}`,
+				{ method: "PATCH", body: JSON.stringify(input) },
+			),
+		attachNoiseToInitiative: (projectId, initiativeId, input) =>
+			request<Initiative>(
+				`${projectPath(projectId)}/initiatives/${encodeURIComponent(initiativeId)}/noise`,
+				{ method: "POST", body: JSON.stringify(input) },
+			),
+		mergeInitiatives: (projectId, initiativeId, input) =>
+			request<Initiative>(
+				`${projectPath(projectId)}/initiatives/${encodeURIComponent(initiativeId)}/merge`,
+				{ method: "POST", body: JSON.stringify(input) },
+			),
+		deferNoiseSynthesis: (projectId, input) =>
+			request<NoOpSynthesis>(`${projectPath(projectId)}/syntheses/deferred`, {
+				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		listDeferredSyntheses: (projectId, options) =>
+			request<NoOpSynthesis[]>(
+				`${projectPath(projectId)}/syntheses/deferred${optionalLimit(options)}`,
+			),
+		listWorkshopInitiatives: (projectId, options) =>
+			request<Initiative[]>(
+				`${projectPath(projectId)}/workshop${optionalLimit(options)}`,
+			),
+		listInitiativeQueue: (projectId, options) =>
+			request<InitiativeQueueEntry[]>(
+				`${projectPath(projectId)}/queue${optionalLimit(options)}`,
+			),
 	};
 }

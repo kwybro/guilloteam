@@ -14,6 +14,13 @@ Guilloteam is a Product Context engine. It provides one conceptual surface over:
 - `@guilloteam/storage-postgres` is the self-hosted Postgres implementation.
 - MCP tool names must not expose physical storage boundaries.
 
+## Testing policy
+
+Follow [docs/testing-policy.md](docs/testing-policy.md). New user-visible
+behavior begins with an executable scenario and a targeted failing test before
+production implementation. Required verification is `bun run lint`,
+`bun run check-types`, `bun test`, and `bun run build`.
+
 ## Monorepo
 
 - `apps/cli`: local initialization and human-facing commands.

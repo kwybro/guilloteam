@@ -24,6 +24,7 @@ services:
       DATABASE_URL: postgres://guilloteam:guilloteam@postgres:5432/guilloteam
       GUILLOTEAM_INGEST_TOKEN: local-ingest-token
       GUILLOTEAM_AGENT_TOKEN: local-agent-token
+      GUILLOTEAM_USER_TOKEN: local-user-token
 
 volumes:
   guilloteam-postgres:

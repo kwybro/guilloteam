@@ -1,13 +1,4 @@
-import {
-	createExecutionQueue,
-	createProductContext,
-	findProjectRoot,
-	readConfig,
-} from "@guilloteam/core";
-import {
-	createRemoteLearningRepository,
-	createRemoteQueueRepository,
-} from "@guilloteam/learning-client";
+import { createRemoteProjectWorkspaceClient } from "@guilloteam/learning-client";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
@@ -15,282 +6,234 @@ const result = (value: unknown) => ({
 	content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }],
 });
 
-export async function buildServer(start = process.cwd()) {
-	const root = await findProjectRoot(start);
-	const config = await readConfig(root);
-	const token = process.env.GUILLOTEAM_TOKEN;
+export interface McpServerOptions {
+	url?: string;
+	token?: string;
+	fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}
+
+/**
+ * Build the Project-first MCP adapter. It deliberately has no repository or
+ * local-config dependency: the HTTP service is selected by GUILLOTEAM_URL.
+ */
+export function buildServer(options: McpServerOptions = {}) {
+	const url = options.url ?? process.env.GUILLOTEAM_URL;
+	const token = options.token ?? process.env.GUILLOTEAM_TOKEN;
+	if (!url) throw new Error("GUILLOTEAM_URL is required.");
 	if (!token) throw new Error("GUILLOTEAM_TOKEN is required.");
-	const remoteOptions = { url: config.learning.url, token };
-	const context = createProductContext(
-		root,
-		createRemoteLearningRepository(remoteOptions),
-	);
-	const execution = createExecutionQueue(
-		createRemoteQueueRepository(remoteOptions),
-	);
+	const projects = createRemoteProjectWorkspaceClient({
+		url,
+		token,
+		fetch: options.fetch,
+	});
 	const server = new McpServer({ name: "guilloteam", version: "0.1.0" });
 
 	server.registerTool(
-		"get_product_context",
-		{ description: "Read the product's Intent and current Learning." },
-		async () => result(await context.getProductContext()),
-	);
-	server.registerTool(
-		"get_intent",
-		{ description: "Read the product Constitution and World Model." },
-		async () => result(await context.getIntent()),
-	);
-	server.registerTool(
-		"get_pending_context_work",
-		{ description: "Find Product Context that is ready for synthesis." },
-		async () => result(await context.getPendingContextWork()),
-	);
-	server.registerTool(
-		"list_observations",
+		"create_team",
 		{
 			description:
-				"List raw product observations. Use unsynthesizedOnly when preparing Evidence.",
+				"Create a Team, the shared home for related Projects. The owner must be the user ID represented by this agent session.",
 			inputSchema: {
-				unsynthesizedOnly: z.boolean().optional(),
-				limit: z.number().int().positive().max(500).optional(),
+				name: z.string().min(1),
+				ownerId: z.string().min(1),
 			},
 		},
-		async (input) => result(await context.listObservations(input)),
+		async (input) => result(await projects.createTeam(input)),
 	);
 	server.registerTool(
-		"create_observation",
+		"join_team",
 		{
 			description:
-				"Record a raw fact, signal, note, or piece of feedback about the product.",
+				"Add a user to an existing Team before that user captures Noise or works in its Projects.",
 			inputSchema: {
-				type: z.string().min(1),
+				teamId: z.string().min(1),
+				userId: z.string().min(1),
+			},
+		},
+		async ({ teamId, userId }) =>
+			result(await projects.joinTeam(teamId, { userId })),
+	);
+	server.registerTool(
+		"create_project",
+		{
+			description:
+				"Create a Project inside a Team. A Project owns its own shared Noise, Workshop, execution queue, and outcomes.",
+			inputSchema: {
+				teamId: z.string().min(1),
+				name: z.string().min(1),
+				userId: z.string().min(1),
+			},
+		},
+		async ({ teamId, ...input }) =>
+			result(await projects.createProject(teamId, input)),
+	);
+	server.registerTool(
+		"get_project_workspace",
+		{
+			description:
+				"Read a Project's counts for Noise, Workshop signals, queue, and outcomes. Use this to orient before deciding the next synthesis step.",
+			inputSchema: { projectId: z.string().min(1) },
+		},
+		async ({ projectId }) =>
+			result(await projects.getProjectWorkspace(projectId)),
+	);
+	server.registerTool(
+		"capture_noise",
+		{
+			description:
+				"Capture raw Project-scoped material such as a fleeting thought, conversation, article, research finding, or request. Do not turn it into an Initiative yet; preserve the source and optional metadata.",
+			inputSchema: {
+				projectId: z.string().min(1),
 				content: z.string().min(1),
-				source: z.string().min(1).optional(),
-				actorId: z.string().min(1).optional(),
+				source: z.string().min(1),
+				userId: z.string().min(1),
 				metadata: z.record(z.string(), z.unknown()).optional(),
-				observedAt: z.string().datetime().optional(),
 			},
 		},
-		async (input) => result(await context.observe(input)),
+		async ({ projectId, ...input }) =>
+			result(await projects.captureNoise(projectId, input)),
 	);
 	server.registerTool(
-		"list_evidence",
-		{
-			description: "List durable Evidence and its cited observations.",
-			inputSchema: { limit: z.number().int().positive().max(500).optional() },
-		},
-		async (input) => result(await context.listEvidence(input)),
-	);
-	server.registerTool(
-		"create_evidence",
+		"list_project_noise",
 		{
 			description:
-				"Persist an inspectable synthesis. Every Evidence claim must cite observations.",
+				"List raw Noise for one Project. Review this before synthesis; Noise from a different Project cannot support its Initiative.",
 			inputSchema: {
-				title: z.string().min(1),
-				claim: z.string().min(1),
-				confidence: z.enum(["low", "medium", "high"]),
-				rationale: z.string().min(1).optional(),
-				observationIds: z.array(z.string().min(1)).min(1),
-				intentReferences: z.array(z.string().min(1)).optional(),
-				createdBy: z.string().min(1).optional(),
-			},
-		},
-		async (input) => result(await context.createEvidence(input)),
-	);
-	server.registerTool(
-		"list_inputs",
-		{
-			description:
-				"List development-team Inputs. Use unlinkedOnly to review material not yet connected to a Queue Item.",
-			inputSchema: {
-				unlinkedOnly: z.boolean().optional(),
+				projectId: z.string().min(1),
 				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
-		async (input) => result(await execution.listInputs(input)),
+		async ({ projectId, limit }) =>
+			result(await projects.listNoise(projectId, { limit })),
 	);
 	server.registerTool(
-		"create_input",
+		"synthesize_noise",
 		{
 			description:
-				"Record an idea, bug, finding, concern, or other unstructured development-team Input.",
+				"Create one concise signal-state Initiative in the Project Workshop from one or more relevant Noise items. Select only the Noise that supports the statement so its provenance stays useful. Do not use this to create duplicate work: attach Noise to an existing signal, merge related signals, or defer synthesis when appropriate.",
 			inputSchema: {
-				name: z.string().min(1),
-				description: z.string().min(1),
+				projectId: z.string().min(1),
+				statement: z.string().min(1),
+				noiseIds: z.array(z.string().min(1)).min(1),
+				userId: z.string().min(1),
 			},
 		},
-		async (input) => result(await execution.createInput(input)),
+		async ({ projectId, ...input }) =>
+			result(await projects.synthesizeNoise(projectId, input)),
 	);
 	server.registerTool(
-		"get_input",
+		"get_initiative",
 		{
-			description: "Read one Input by ID.",
-			inputSchema: { id: z.string().min(1) },
-		},
-		async (input) => result(await execution.getInput(input.id)),
-	);
-	server.registerTool(
-		"update_input",
-		{
-			description: "Refine an existing Input without changing its history.",
+			description:
+				"Read one Initiative, including its lifecycle state and the IDs of the Noise that supports it.",
 			inputSchema: {
-				id: z.string().min(1),
-				name: z.string().min(1).optional(),
-				description: z.string().min(1).optional(),
+				projectId: z.string().min(1),
+				initiativeId: z.string().min(1),
 			},
 		},
-		async ({ id, ...input }) => result(await execution.updateInput(id, input)),
+		async ({ projectId, initiativeId }) =>
+			result(await projects.getInitiative(projectId, initiativeId)),
 	);
 	server.registerTool(
-		"list_queues",
-		{
-			description: "List the team's independent execution queues.",
-			inputSchema: { limit: z.number().int().positive().max(500).optional() },
-		},
-		async (input) => result(await execution.listQueues(input)),
-	);
-	server.registerTool(
-		"create_queue",
+		"update_initiative",
 		{
 			description:
-				"Create an independent execution queue. Start with one queue unless work truly needs a separate coordination boundary.",
-			inputSchema: { name: z.string().min(1) },
-		},
-		async (input) => result(await execution.createQueue(input)),
-	);
-	server.registerTool(
-		"get_queue",
-		{
-			description: "Read one execution queue by ID.",
-			inputSchema: { id: z.string().min(1) },
-		},
-		async (input) => result(await execution.getQueue(input.id)),
-	);
-	server.registerTool(
-		"update_queue",
-		{
-			description: "Rename an execution queue.",
-			inputSchema: { id: z.string().min(1), name: z.string().min(1) },
-		},
-		async ({ id, name }) => result(await execution.updateQueue(id, { name })),
-	);
-	server.registerTool(
-		"list_queue_items",
-		{
-			description:
-				"List Queue Items in deterministic queue order. Completed items are hidden unless includeDone is true.",
+				"Refine the concise statement of a signal-state Workshop Initiative. This changes neither its supporting Noise nor its lifecycle state.",
 			inputSchema: {
-				queueId: z.string().min(1),
-				includeDone: z.boolean().optional(),
+				projectId: z.string().min(1),
+				initiativeId: z.string().min(1),
+				statement: z.string().min(1),
+				userId: z.string().min(1),
+			},
+		},
+		async ({ projectId, initiativeId, ...input }) =>
+			result(await projects.updateInitiative(projectId, initiativeId, input)),
+	);
+	server.registerTool(
+		"attach_noise_to_initiative",
+		{
+			description:
+				"Add one or more newly relevant Noise items to an existing signal-state Initiative. Use this instead of creating a second Initiative when the work is already represented; duplicate Noise attachments are rejected.",
+			inputSchema: {
+				projectId: z.string().min(1),
+				initiativeId: z.string().min(1),
+				noiseIds: z.array(z.string().min(1)).min(1),
+				userId: z.string().min(1),
+			},
+		},
+		async ({ projectId, initiativeId, ...input }) =>
+			result(
+				await projects.attachNoiseToInitiative(projectId, initiativeId, input),
+			),
+	);
+	server.registerTool(
+		"merge_initiatives",
+		{
+			description:
+				"Merge one or more related signal-state Workshop Initiatives into a surviving signal. The survivor retains all distinct Noise provenance; absorbed Initiatives remain auditable records and leave the Workshop.",
+			inputSchema: {
+				projectId: z.string().min(1),
+				initiativeId: z.string().min(1),
+				absorbedInitiativeIds: z.array(z.string().min(1)).min(1),
+				userId: z.string().min(1),
+			},
+		},
+		async ({ projectId, initiativeId, ...input }) =>
+			result(await projects.mergeInitiatives(projectId, initiativeId, input)),
+	);
+	server.registerTool(
+		"defer_noise_synthesis",
+		{
+			description:
+				"Record the agent's decision to defer selected Project Noise because it does not warrant an Initiative yet. This is an agent synthesis outcome, not a user request. Keep the rationale concise; the Noise remains available for future synthesis.",
+			inputSchema: {
+				projectId: z.string().min(1),
+				noiseIds: z.array(z.string().min(1)).min(1),
+				rationale: z.string().min(1),
+				userId: z.string().min(1),
+			},
+		},
+		async ({ projectId, ...input }) =>
+			result(await projects.deferNoiseSynthesis(projectId, input)),
+	);
+	server.registerTool(
+		"list_deferred_syntheses",
+		{
+			description:
+				"List prior deferred synthesis decisions for a Project so the agent can revisit their rationale before creating new work.",
+			inputSchema: {
+				projectId: z.string().min(1),
 				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
-		async (input) => result(await execution.listQueueItems(input)),
+		async ({ projectId, limit }) =>
+			result(await projects.listDeferredSyntheses(projectId, { limit })),
 	);
 	server.registerTool(
-		"create_queue_item",
+		"list_workshop_initiatives",
 		{
 			description:
-				"Choose work for a Queue and begin its living context canvas. New items are queued and not ready.",
+				"List signal-state Initiatives in the Project Workshop. They are incomplete work signals: prepare or consolidate them, then recommend graduation to a user when ready.",
 			inputSchema: {
-				queueId: z.string().min(1),
-				name: z.string().min(1),
-				description: z.string().min(1),
-				inputIds: z.array(z.string().min(1)).optional(),
-				position: z.number().int().positive().optional(),
+				projectId: z.string().min(1),
+				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
-		async (input) => result(await execution.createQueueItem(input)),
+		async ({ projectId, limit }) =>
+			result(await projects.listWorkshopInitiatives(projectId, { limit })),
 	);
 	server.registerTool(
-		"get_queue_item",
-		{
-			description: "Read a Queue Item and the Input IDs linked to its context.",
-			inputSchema: { id: z.string().min(1) },
-		},
-		async (input) => result(await execution.getQueueItem(input.id)),
-	);
-	server.registerTool(
-		"update_queue_item",
+		"list_project_queue",
 		{
 			description:
-				"Develop a queued item's context. Only queued items can be changed in v0.",
+				"List the Project's shared execution queue in position order. This is read-only for an agent: a user must graduate an Initiative, start the next Initiative, and complete it through the user-authorized application surface.",
 			inputSchema: {
-				id: z.string().min(1),
-				name: z.string().min(1).optional(),
-				description: z.string().min(1).optional(),
-				inputIds: z.array(z.string().min(1)).optional(),
+				projectId: z.string().min(1),
+				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
-		async ({ id, ...input }) =>
-			result(await execution.updateQueueItem(id, input)),
-	);
-	server.registerTool(
-		"move_queue_item",
-		{
-			description:
-				"Change a Queue Item's priority position within its Queue. Completed items cannot move.",
-			inputSchema: {
-				id: z.string().min(1),
-				position: z.number().int().positive(),
-			},
-		},
-		async ({ id, position }) =>
-			result(await execution.moveQueueItem(id, { position })),
-	);
-	server.registerTool(
-		"set_queue_item_readiness",
-		{
-			description:
-				"Explicitly mark a queued item ready or not ready. A human should make this commitment.",
-			inputSchema: {
-				id: z.string().min(1),
-				readiness: z.enum(["not_ready", "ready"]),
-			},
-		},
-		async ({ id, readiness }) =>
-			result(await execution.setQueueItemReadiness(id, readiness)),
-	);
-	server.registerTool(
-		"get_next_to_prepare",
-		{
-			description:
-				"Return the highest-priority queued item that still needs context before execution.",
-			inputSchema: { queueId: z.string().min(1) },
-		},
-		async (input) => result(await execution.getNextToPrepare(input.queueId)),
-	);
-	server.registerTool(
-		"get_next_to_execute",
-		{
-			description:
-				"Return the highest-priority ready item that has not yet started executing.",
-			inputSchema: { queueId: z.string().min(1) },
-		},
-		async (input) => result(await execution.getNextToExecute(input.queueId)),
-	);
-	server.registerTool(
-		"start_queue_item",
-		{
-			description:
-				"Atomically start a ready Queue Item before beginning execution. It fails if another agent has already claimed it.",
-			inputSchema: { id: z.string().min(1) },
-		},
-		async (input) => result(await execution.startQueueItem(input.id)),
-	);
-	server.registerTool(
-		"complete_queue_item",
-		{
-			description:
-				"Complete an in-progress Queue Item and optionally record what execution produced.",
-			inputSchema: {
-				id: z.string().min(1),
-				completionSummary: z.string().min(1).optional(),
-			},
-		},
-		async ({ id, completionSummary }) =>
-			result(await execution.completeQueueItem(id, { completionSummary })),
+		async ({ projectId, limit }) =>
+			result(await projects.listInitiativeQueue(projectId, { limit })),
 	);
 
 	return { server };
