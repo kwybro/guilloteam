@@ -18,6 +18,8 @@ import type {
 	Team,
 	TeamMember,
 	TeamProjectRepository,
+	WorkspaceFocus,
+	WorkspaceFocusRepository,
 } from "@guilloteam/core";
 import {
 	createRemoteLearningRepository,
@@ -28,6 +30,7 @@ import { createServiceApp } from "../src/app";
 function createMemoryStore(): LearningRepository &
 	QueueRepository &
 	TeamProjectRepository &
+	WorkspaceFocusRepository &
 	ProjectNoiseRepository &
 	ProjectInitiativeRepository &
 	ProjectNoOpSynthesisRepository {
@@ -43,6 +46,7 @@ function createMemoryStore(): LearningRepository &
 	const initiatives: Initiative[] = [];
 	const initiativeQueue: InitiativeQueueEntry[] = [];
 	const noOpSyntheses: NoOpSynthesis[] = [];
+	const workspaceFocuses: WorkspaceFocus[] = [];
 	const timestamp = () => new Date().toISOString();
 	const clone = <T>(value: T): T => structuredClone(value);
 	const activeItems = (queueId: string) =>
@@ -73,6 +77,15 @@ function createMemoryStore(): LearningRepository &
 		async getTeam(id) {
 			const team = teams.find((candidate) => candidate.id === id);
 			return team ? clone(team) : undefined;
+		},
+		async listTeamsForUser(userId) {
+			return teams
+				.filter((team) =>
+					teamMembers.some(
+						(member) => member.teamId === team.id && member.userId === userId,
+					),
+				)
+				.map(clone);
 		},
 		async joinTeam(teamId, userId) {
 			const existing = teamMembers.find(
@@ -110,6 +123,9 @@ function createMemoryStore(): LearningRepository &
 			const project = projects.find((candidate) => candidate.id === id);
 			return project ? clone(project) : undefined;
 		},
+		async listProjects(teamId) {
+			return projects.filter((project) => project.teamId === teamId).map(clone);
+		},
 		async createNoise(input) {
 			const item: Noise = {
 				id: crypto.randomUUID(),
@@ -127,6 +143,24 @@ function createMemoryStore(): LearningRepository &
 				.filter((item) => item.projectId === projectId)
 				.slice(0, options.limit)
 				.map(clone);
+		},
+		async getWorkspaceFocus(userId) {
+			const focus = workspaceFocuses.find(
+				(candidate) => candidate.userId === userId,
+			);
+			return focus ? clone(focus) : undefined;
+		},
+		async setWorkspaceFocus(input) {
+			const existingIndex = workspaceFocuses.findIndex(
+				(candidate) => candidate.userId === input.userId,
+			);
+			const focus: WorkspaceFocus = {
+				...input,
+				updatedAt: timestamp(),
+			};
+			if (existingIndex >= 0) workspaceFocuses[existingIndex] = focus;
+			else workspaceFocuses.push(focus);
+			return clone(focus);
 		},
 		async countNoise(projectId) {
 			return noise.filter((item) => item.projectId === projectId).length;
@@ -556,6 +590,208 @@ describe("self-hosted Learning service", () => {
 			queueCount: 0,
 			outcomeCount: 0,
 		});
+	});
+
+	test("lets a user list Team Projects and create another Project", async () => {
+		const store = createMemoryStore();
+		const app = createServiceApp(store, store, store, {
+			ingestToken: "ingest-secret",
+			agentToken: "agent-secret",
+			userToken: "user-secret",
+		});
+		const agentHeaders = {
+			authorization: "Bearer agent-secret",
+			"content-type": "application/json",
+		};
+		const userHeaders = {
+			authorization: "Bearer user-secret",
+			"content-type": "application/json",
+		};
+		const team = (await (
+			await app.request("/v1/teams", {
+				method: "POST",
+				headers: agentHeaders,
+				body: JSON.stringify({ name: "Guilloteam", ownerId: "ava" }),
+			})
+		).json()) as { id: string; name: string };
+		await app.request(`/v1/teams/${team.id}/projects`, {
+			method: "POST",
+			headers: agentHeaders,
+			body: JSON.stringify({ name: "Mobile app", userId: "ava" }),
+		});
+
+		expect(
+			await (
+				await app.request("/v1/teams?userId=ava", { headers: userHeaders })
+			).json(),
+		).toEqual([team]);
+		expect(
+			await (
+				await app.request(`/v1/teams/${team.id}/projects?userId=ava`, {
+					headers: userHeaders,
+				})
+			).json(),
+		).toMatchObject([{ name: "Mobile app", teamId: team.id }]);
+		const created = await app.request(`/v1/teams/${team.id}/projects`, {
+			method: "POST",
+			headers: userHeaders,
+			body: JSON.stringify({ name: "Website", userId: "ava" }),
+		});
+		expect(created.status).toBe(201);
+		expect(await created.json()).toMatchObject({
+			name: "Website",
+			teamId: team.id,
+			createdByUserId: "ava",
+		});
+	});
+
+	test("persists a member's focused Team and Project for an agent to retrieve", async () => {
+		const store = createMemoryStore();
+		const app = createServiceApp(store, store, store, {
+			ingestToken: "ingest-secret",
+			agentToken: "agent-secret",
+			userToken: "user-secret",
+		});
+		const agentHeaders = {
+			authorization: "Bearer agent-secret",
+			"content-type": "application/json",
+		};
+		const userHeaders = {
+			authorization: "Bearer user-secret",
+			"content-type": "application/json",
+		};
+		const team = (await (
+			await app.request("/v1/teams", {
+				method: "POST",
+				headers: agentHeaders,
+				body: JSON.stringify({ name: "Agent Test", ownerId: "admin" }),
+			})
+		).json()) as { id: string };
+		const project = (await (
+			await app.request(`/v1/teams/${team.id}/projects`, {
+				method: "POST",
+				headers: agentHeaders,
+				body: JSON.stringify({ name: "Invitation recovery", userId: "admin" }),
+			})
+		).json()) as { id: string };
+
+		const focused = await app.request("/v1/workspace-focus", {
+			method: "PUT",
+			headers: userHeaders,
+			body: JSON.stringify({
+				userId: "admin",
+				teamId: team.id,
+				projectId: project.id,
+			}),
+		});
+		expect(focused.status).toBe(200);
+		expect(await focused.json()).toMatchObject({
+			userId: "admin",
+			teamId: team.id,
+			projectId: project.id,
+		});
+		expect(
+			await (
+				await app.request("/v1/workspace-focus?userId=admin", {
+					headers: agentHeaders,
+				})
+			).json(),
+		).toMatchObject({ teamId: team.id, projectId: project.id });
+	});
+
+	test("lets a user view a Project and capture Noise while synthesis stays agent-owned", async () => {
+		const store = createMemoryStore();
+		const app = createServiceApp(store, store, store, {
+			ingestToken: "ingest-secret",
+			agentToken: "agent-secret",
+			userToken: "user-secret",
+		});
+		const agentHeaders = {
+			authorization: "Bearer agent-secret",
+			"content-type": "application/json",
+		};
+		const userHeaders = {
+			authorization: "Bearer user-secret",
+			"content-type": "application/json",
+		};
+
+		const team = (await (
+			await app.request("/v1/teams", {
+				method: "POST",
+				headers: agentHeaders,
+				body: JSON.stringify({ name: "Guilloteam", ownerId: "ava" }),
+			})
+		).json()) as { id: string };
+		const project = (await (
+			await app.request(`/v1/teams/${team.id}/projects`, {
+				method: "POST",
+				headers: agentHeaders,
+				body: JSON.stringify({ name: "Mobile app", userId: "ava" }),
+			})
+		).json()) as { id: string };
+
+		expect(
+			(
+				await app.request(`/v1/projects/${project.id}/workspace`, {
+					headers: userHeaders,
+				})
+			).status,
+		).toBe(200);
+		const captureResponse = await app.request(
+			`/v1/projects/${project.id}/noise`,
+			{
+				method: "POST",
+				headers: userHeaders,
+				body: JSON.stringify({
+					content: "Make invitations recoverable.",
+					source: "fleeting_thought",
+					userId: "ava",
+				}),
+			},
+		);
+		expect(captureResponse.status).toBe(201);
+		const noise = (await captureResponse.json()) as { id: string };
+
+		for (const path of ["noise", "workshop", "queue"]) {
+			expect(
+				(
+					await app.request(`/v1/projects/${project.id}/${path}`, {
+						headers: userHeaders,
+					})
+				).status,
+			).toBe(200);
+		}
+		const synthesisResponse = await app.request(
+			`/v1/projects/${project.id}/initiatives/synthesize`,
+			{
+				method: "POST",
+				headers: agentHeaders,
+				body: JSON.stringify({
+					statement: "Make invitation recovery reliable.",
+					noiseIds: [noise.id],
+					userId: "ava",
+				}),
+			},
+		);
+		expect(synthesisResponse.status).toBe(201);
+		const initiative = (await synthesisResponse.json()) as { id: string };
+		expect(
+			(
+				await app.request(
+					`/v1/projects/${project.id}/initiatives/${initiative.id}`,
+					{ headers: userHeaders },
+				)
+			).status,
+		).toBe(200);
+		expect(
+			(
+				await app.request(`/v1/projects/${project.id}/initiatives/synthesize`, {
+					method: "POST",
+					headers: userHeaders,
+					body: JSON.stringify({}),
+				})
+			).status,
+		).toBe(403);
 	});
 
 	test("captures Project-scoped Noise without leaking it to another Project", async () => {

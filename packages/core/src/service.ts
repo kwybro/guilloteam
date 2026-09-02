@@ -26,6 +26,8 @@ import type {
 	TeamInput,
 	TeamProjectRepository,
 	UpdateInitiativeInput,
+	WorkspaceFocusInput,
+	WorkspaceFocusRepository,
 } from "./model";
 import {
 	evidenceInputSchema,
@@ -50,6 +52,7 @@ import {
 	parseSynthesizeNoiseInput,
 	parseTeamInput,
 	parseUpdateInitiativeInput,
+	parseWorkspaceFocusInput,
 } from "./model";
 import { readIntent } from "./project";
 
@@ -259,6 +262,7 @@ export function createExecutionQueue(queue: QueueRepository) {
 
 export function createTeamWorkspace(
 	repository: TeamProjectRepository &
+		WorkspaceFocusRepository &
 		ProjectNoiseRepository &
 		ProjectInitiativeRepository &
 		ProjectNoOpSynthesisRepository,
@@ -277,6 +281,18 @@ export function createTeamWorkspace(
 			await getTeam(teamId);
 			return repository.joinTeam(teamId, parseJoinTeamInput(raw).userId);
 		},
+		async listTeamsForUser(userId: string) {
+			return repository.listTeamsForUser(parseJoinTeamInput({ userId }).userId);
+		},
+		async listTeamProjects(teamId: string, userId: string) {
+			await getTeam(teamId);
+			const member = await repository.getTeamMember(
+				teamId,
+				parseJoinTeamInput({ userId }).userId,
+			);
+			if (!member) throw new Error("A Project viewer must belong to the Team.");
+			return repository.listProjects(teamId);
+		},
 		async createProject(teamId: string, raw: ProjectInput) {
 			await getTeam(teamId);
 			const input = parseProjectInput(raw);
@@ -288,6 +304,25 @@ export function createTeamWorkspace(
 				name: input.name,
 				createdByUserId: input.userId,
 			});
+		},
+		async setWorkspaceFocus(raw: WorkspaceFocusInput) {
+			const input = parseWorkspaceFocusInput(raw);
+			const [team, project] = await Promise.all([
+				getTeam(input.teamId),
+				repository.getProject(input.projectId),
+			]);
+			if (project?.teamId !== team.id) {
+				throw new Error("Focused Project must belong to the focused Team.");
+			}
+			const member = await repository.getTeamMember(team.id, input.userId);
+			if (!member)
+				throw new Error("A focused workspace user must belong to the Team.");
+			return repository.setWorkspaceFocus(input);
+		},
+		async getWorkspaceFocus(userId: string) {
+			return repository.getWorkspaceFocus(
+				parseJoinTeamInput({ userId }).userId,
+			);
 		},
 		async captureNoise(projectId: string, raw: NoiseInput) {
 			const project = await repository.getProject(projectId);

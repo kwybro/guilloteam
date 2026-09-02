@@ -91,6 +91,23 @@ export const projects = pgTable(
 	],
 );
 
+export const workspaceFocuses = pgTable(
+	"workspace_focuses",
+	{
+		userId: text("user_id").primaryKey(),
+		teamId: uuid("team_id")
+			.notNull()
+			.references(() => teams.id, { onDelete: "cascade" }),
+		projectId: uuid("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [index("workspace_focuses_project_idx").on(table.projectId)],
+);
+
 export const noise = pgTable(
 	"noise",
 	{

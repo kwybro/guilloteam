@@ -85,3 +85,100 @@ test("agents synthesize Project Noise without repository initialization", async 
 
 	await Promise.all([client.close(), server.close()]);
 });
+
+test("agents can retrieve admin's focused workspace", async () => {
+	const requests: Array<{ path: string; authorization: string }> = [];
+	const { server } = await buildServer({
+		url: "https://guilloteam.test",
+		token: "agent-token",
+		userId: "admin",
+		fetch: async (input, init) => {
+			requests.push({
+				path: new URL(String(input)).pathname + new URL(String(input)).search,
+				authorization: new Headers(init?.headers).get("authorization") ?? "",
+			});
+			return Response.json({
+				userId: "admin",
+				teamId: "team-1",
+				projectId: "project-1",
+				updatedAt: "2026-08-30T00:00:00.000Z",
+			});
+		},
+	});
+	const [clientTransport, serverTransport] =
+		InMemoryTransport.createLinkedPair();
+	const client = new Client({ name: "test-agent", version: "0.1.0" });
+	await Promise.all([
+		server.connect(serverTransport),
+		client.connect(clientTransport),
+	]);
+
+	const tools = await client.listTools();
+	expect(tools.tools.map((tool) => tool.name)).toContain(
+		"get_focused_workspace",
+	);
+	const response = await client.callTool({
+		name: "get_focused_workspace",
+		arguments: {},
+	});
+	expect(JSON.parse(response.content[0]?.text ?? "{}")).toMatchObject({
+		projectId: "project-1",
+	});
+	expect(requests).toEqual([
+		{
+			path: "/v1/workspace-focus?userId=admin",
+			authorization: "Bearer agent-token",
+		},
+	]);
+
+	await Promise.all([client.close(), server.close()]);
+});
+
+test("agents default Project tools to admin's focused workspace", async () => {
+	const requests: string[] = [];
+	const { server } = await buildServer({
+		url: "https://guilloteam.test",
+		token: "agent-token",
+		userId: "admin",
+		fetch: async (input) => {
+			const url = new URL(String(input));
+			requests.push(`${url.pathname}${url.search}`);
+			if (url.pathname === "/v1/workspace-focus") {
+				return Response.json({
+					userId: "admin",
+					teamId: "team-1",
+					projectId: "project-1",
+					updatedAt: "2026-08-30T00:00:00.000Z",
+				});
+			}
+			return Response.json({
+				projectId: "project-1",
+				noiseCount: 0,
+				workshopCount: 0,
+				queueCount: 0,
+				outcomeCount: 0,
+			});
+		},
+	});
+	const [clientTransport, serverTransport] =
+		InMemoryTransport.createLinkedPair();
+	const client = new Client({ name: "test-agent", version: "0.1.0" });
+	await Promise.all([
+		server.connect(serverTransport),
+		client.connect(clientTransport),
+	]);
+
+	const response = await client.callTool({
+		name: "get_project_workspace",
+		arguments: {},
+	});
+	expect(JSON.parse(response.content[0]?.text ?? "{}")).toMatchObject({
+		projectId: "project-1",
+	});
+	expect(requests).toEqual([
+		"/v1/workspace-focus?userId=admin",
+		"/v1/projects/project-1/workspace",
+	]);
+
+	await Promise.all([client.close(), server.close()]);
+});

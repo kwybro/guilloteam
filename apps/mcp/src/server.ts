@@ -9,6 +9,7 @@ const result = (value: unknown) => ({
 export interface McpServerOptions {
 	url?: string;
 	token?: string;
+	userId?: string;
 	fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
@@ -19,6 +20,7 @@ export interface McpServerOptions {
 export function buildServer(options: McpServerOptions = {}) {
 	const url = options.url ?? process.env.GUILLOTEAM_URL;
 	const token = options.token ?? process.env.GUILLOTEAM_TOKEN;
+	const userId = options.userId ?? process.env.GUILLOTEAM_USER_ID;
 	if (!url) throw new Error("GUILLOTEAM_URL is required.");
 	if (!token) throw new Error("GUILLOTEAM_TOKEN is required.");
 	const projects = createRemoteProjectWorkspaceClient({
@@ -26,8 +28,31 @@ export function buildServer(options: McpServerOptions = {}) {
 		token,
 		fetch: options.fetch,
 	});
+	const focusedWorkspace = async () => {
+		if (!userId) {
+			throw new Error(
+				"GUILLOTEAM_USER_ID is required when no Project ID is provided.",
+			);
+		}
+		return projects.getWorkspaceFocus(userId);
+	};
+	const focusedProjectId = async (projectId?: string) =>
+		projectId ?? (await focusedWorkspace()).projectId;
+	const focusedUserId = async (requestedUserId?: string) =>
+		requestedUserId ?? userId ?? (await focusedWorkspace()).userId;
 	const server = new McpServer({ name: "guilloteam", version: "0.1.0" });
 
+	server.registerTool(
+		"get_focused_workspace",
+		{
+			description:
+				"Read the Team and Project currently focused by the user in Guilloteam's web application. Call this first when the user has not explicitly named a Project, then use its IDs for Project work. The focus is shared with the web application.",
+			inputSchema: {},
+		},
+		async () => {
+			return result(await focusedWorkspace());
+		},
+	);
 	server.registerTool(
 		"create_team",
 		{
@@ -71,11 +96,13 @@ export function buildServer(options: McpServerOptions = {}) {
 		"get_project_workspace",
 		{
 			description:
-				"Read a Project's counts for Noise, Workshop signals, queue, and outcomes. Use this to orient before deciding the next synthesis step.",
-			inputSchema: { projectId: z.string().min(1) },
+				"Read a Project's counts for Noise, Workshop signals, queue, and outcomes. Omit Project ID to use the user's focused workspace. Use this to orient before deciding the next synthesis step.",
+			inputSchema: { projectId: z.string().min(1).optional() },
 		},
 		async ({ projectId }) =>
-			result(await projects.getProjectWorkspace(projectId)),
+			result(
+				await projects.getProjectWorkspace(await focusedProjectId(projectId)),
+			),
 	);
 	server.registerTool(
 		"capture_noise",
@@ -83,15 +110,20 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Capture raw Project-scoped material such as a fleeting thought, conversation, article, research finding, or request. Do not turn it into an Initiative yet; preserve the source and optional metadata.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				content: z.string().min(1),
 				source: z.string().min(1),
-				userId: z.string().min(1),
+				userId: z.string().min(1).optional(),
 				metadata: z.record(z.string(), z.unknown()).optional(),
 			},
 		},
-		async ({ projectId, ...input }) =>
-			result(await projects.captureNoise(projectId, input)),
+		async ({ projectId, userId: requestedUserId, ...input }) =>
+			result(
+				await projects.captureNoise(await focusedProjectId(projectId), {
+					...input,
+					userId: await focusedUserId(requestedUserId),
+				}),
+			),
 	);
 	server.registerTool(
 		"list_project_noise",
@@ -99,12 +131,14 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"List raw Noise for one Project. Review this before synthesis; Noise from a different Project cannot support its Initiative.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
 		async ({ projectId, limit }) =>
-			result(await projects.listNoise(projectId, { limit })),
+			result(
+				await projects.listNoise(await focusedProjectId(projectId), { limit }),
+			),
 	);
 	server.registerTool(
 		"synthesize_noise",
@@ -112,14 +146,19 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Create one concise signal-state Initiative in the Project Workshop from one or more relevant Noise items. Select only the Noise that supports the statement so its provenance stays useful. Do not use this to create duplicate work: attach Noise to an existing signal, merge related signals, or defer synthesis when appropriate.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				statement: z.string().min(1),
 				noiseIds: z.array(z.string().min(1)).min(1),
-				userId: z.string().min(1),
+				userId: z.string().min(1).optional(),
 			},
 		},
-		async ({ projectId, ...input }) =>
-			result(await projects.synthesizeNoise(projectId, input)),
+		async ({ projectId, userId: requestedUserId, ...input }) =>
+			result(
+				await projects.synthesizeNoise(await focusedProjectId(projectId), {
+					...input,
+					userId: await focusedUserId(requestedUserId),
+				}),
+			),
 	);
 	server.registerTool(
 		"get_initiative",
@@ -127,12 +166,17 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Read one Initiative, including its lifecycle state and the IDs of the Noise that supports it.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				initiativeId: z.string().min(1),
 			},
 		},
 		async ({ projectId, initiativeId }) =>
-			result(await projects.getInitiative(projectId, initiativeId)),
+			result(
+				await projects.getInitiative(
+					await focusedProjectId(projectId),
+					initiativeId,
+				),
+			),
 	);
 	server.registerTool(
 		"update_initiative",
@@ -140,14 +184,20 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Refine the concise statement of a signal-state Workshop Initiative. This changes neither its supporting Noise nor its lifecycle state.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				initiativeId: z.string().min(1),
 				statement: z.string().min(1),
-				userId: z.string().min(1),
+				userId: z.string().min(1).optional(),
 			},
 		},
-		async ({ projectId, initiativeId, ...input }) =>
-			result(await projects.updateInitiative(projectId, initiativeId, input)),
+		async ({ projectId, initiativeId, userId: requestedUserId, ...input }) =>
+			result(
+				await projects.updateInitiative(
+					await focusedProjectId(projectId),
+					initiativeId,
+					{ ...input, userId: await focusedUserId(requestedUserId) },
+				),
+			),
 	);
 	server.registerTool(
 		"attach_noise_to_initiative",
@@ -155,15 +205,19 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Add one or more newly relevant Noise items to an existing signal-state Initiative. Use this instead of creating a second Initiative when the work is already represented; duplicate Noise attachments are rejected.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				initiativeId: z.string().min(1),
 				noiseIds: z.array(z.string().min(1)).min(1),
-				userId: z.string().min(1),
+				userId: z.string().min(1).optional(),
 			},
 		},
-		async ({ projectId, initiativeId, ...input }) =>
+		async ({ projectId, initiativeId, userId: requestedUserId, ...input }) =>
 			result(
-				await projects.attachNoiseToInitiative(projectId, initiativeId, input),
+				await projects.attachNoiseToInitiative(
+					await focusedProjectId(projectId),
+					initiativeId,
+					{ ...input, userId: await focusedUserId(requestedUserId) },
+				),
 			),
 	);
 	server.registerTool(
@@ -172,14 +226,20 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Merge one or more related signal-state Workshop Initiatives into a surviving signal. The survivor retains all distinct Noise provenance; absorbed Initiatives remain auditable records and leave the Workshop.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				initiativeId: z.string().min(1),
 				absorbedInitiativeIds: z.array(z.string().min(1)).min(1),
-				userId: z.string().min(1),
+				userId: z.string().min(1).optional(),
 			},
 		},
-		async ({ projectId, initiativeId, ...input }) =>
-			result(await projects.mergeInitiatives(projectId, initiativeId, input)),
+		async ({ projectId, initiativeId, userId: requestedUserId, ...input }) =>
+			result(
+				await projects.mergeInitiatives(
+					await focusedProjectId(projectId),
+					initiativeId,
+					{ ...input, userId: await focusedUserId(requestedUserId) },
+				),
+			),
 	);
 	server.registerTool(
 		"defer_noise_synthesis",
@@ -187,14 +247,19 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"Record the agent's decision to defer selected Project Noise because it does not warrant an Initiative yet. This is an agent synthesis outcome, not a user request. Keep the rationale concise; the Noise remains available for future synthesis.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				noiseIds: z.array(z.string().min(1)).min(1),
 				rationale: z.string().min(1),
-				userId: z.string().min(1),
+				userId: z.string().min(1).optional(),
 			},
 		},
-		async ({ projectId, ...input }) =>
-			result(await projects.deferNoiseSynthesis(projectId, input)),
+		async ({ projectId, userId: requestedUserId, ...input }) =>
+			result(
+				await projects.deferNoiseSynthesis(await focusedProjectId(projectId), {
+					...input,
+					userId: await focusedUserId(requestedUserId),
+				}),
+			),
 	);
 	server.registerTool(
 		"list_deferred_syntheses",
@@ -202,12 +267,19 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"List prior deferred synthesis decisions for a Project so the agent can revisit their rationale before creating new work.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
 		async ({ projectId, limit }) =>
-			result(await projects.listDeferredSyntheses(projectId, { limit })),
+			result(
+				await projects.listDeferredSyntheses(
+					await focusedProjectId(projectId),
+					{
+						limit,
+					},
+				),
+			),
 	);
 	server.registerTool(
 		"list_workshop_initiatives",
@@ -215,12 +287,19 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"List signal-state Initiatives in the Project Workshop. They are incomplete work signals: prepare or consolidate them, then recommend graduation to a user when ready.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
 		async ({ projectId, limit }) =>
-			result(await projects.listWorkshopInitiatives(projectId, { limit })),
+			result(
+				await projects.listWorkshopInitiatives(
+					await focusedProjectId(projectId),
+					{
+						limit,
+					},
+				),
+			),
 	);
 	server.registerTool(
 		"list_project_queue",
@@ -228,12 +307,16 @@ export function buildServer(options: McpServerOptions = {}) {
 			description:
 				"List the Project's shared execution queue in position order. This is read-only for an agent: a user must graduate an Initiative, start the next Initiative, and complete it through the user-authorized application surface.",
 			inputSchema: {
-				projectId: z.string().min(1),
+				projectId: z.string().min(1).optional(),
 				limit: z.number().int().positive().max(500).optional(),
 			},
 		},
 		async ({ projectId, limit }) =>
-			result(await projects.listInitiativeQueue(projectId, { limit })),
+			result(
+				await projects.listInitiativeQueue(await focusedProjectId(projectId), {
+					limit,
+				}),
+			),
 	);
 
 	return { server };

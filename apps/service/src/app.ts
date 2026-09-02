@@ -6,6 +6,7 @@ import type {
 	ProjectNoOpSynthesisRepository,
 	QueueRepository,
 	TeamProjectRepository,
+	WorkspaceFocusRepository,
 } from "@guilloteam/core";
 import {
 	createExecutionQueue,
@@ -40,6 +41,7 @@ export function createServiceApp(
 	learning: LearningRepository,
 	queue: QueueRepository,
 	teamProject: TeamProjectRepository &
+		WorkspaceFocusRepository &
 		ProjectNoiseRepository &
 		ProjectInitiativeRepository &
 		ProjectNoOpSynthesisRepository,
@@ -78,6 +80,10 @@ export function createServiceApp(
 		if (tokenMatches(token, auth.ingestToken)) return "ingest";
 		return undefined;
 	};
+	const canAccessProject = (authorization?: string) => {
+		const currentRole = role(authorization);
+		return currentRole === "agent" || currentRole === "user";
+	};
 
 	app.get("/health", (c) => c.json({ status: "ok" }));
 	app.post("/v1/teams", async (c) => {
@@ -95,9 +101,17 @@ export function createServiceApp(
 			201,
 		);
 	});
+	app.get("/v1/teams", async (c) => {
+		if (role(c.req.header("authorization")) !== "user") {
+			return c.json({ error: "User access required" }, 403);
+		}
+		return c.json(
+			await collaboration.listTeamsForUser(c.req.query("userId") ?? ""),
+		);
+	});
 	app.post("/v1/teams/:teamId/projects", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		return c.json(
 			await collaboration.createProject(
@@ -107,17 +121,45 @@ export function createServiceApp(
 			201,
 		);
 	});
+	app.get("/v1/teams/:teamId/projects", async (c) => {
+		if (role(c.req.header("authorization")) !== "user") {
+			return c.json({ error: "User access required" }, 403);
+		}
+		return c.json(
+			await collaboration.listTeamProjects(
+				c.req.param("teamId"),
+				c.req.query("userId") ?? "",
+			),
+		);
+	});
+	app.put("/v1/workspace-focus", async (c) => {
+		if (role(c.req.header("authorization")) !== "user") {
+			return c.json({ error: "User access required" }, 403);
+		}
+		return c.json(await collaboration.setWorkspaceFocus(await c.req.json()));
+	});
+	app.get("/v1/workspace-focus", async (c) => {
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
+		}
+		const focus = await collaboration.getWorkspaceFocus(
+			c.req.query("userId") ?? "",
+		);
+		return focus
+			? c.json(focus)
+			: c.json({ error: "No focused workspace is set." }, 404);
+	});
 	app.get("/v1/projects/:projectId/workspace", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		return c.json(
 			await collaboration.getProjectWorkspace(c.req.param("projectId")),
 		);
 	});
 	app.post("/v1/projects/:projectId/noise", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		return c.json(
 			await collaboration.captureNoise(
@@ -128,8 +170,8 @@ export function createServiceApp(
 		);
 	});
 	app.get("/v1/projects/:projectId/noise", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		const limit = Number(c.req.query("limit") ?? 100);
 		if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
@@ -152,8 +194,8 @@ export function createServiceApp(
 		);
 	});
 	app.get("/v1/projects/:projectId/initiatives/:initiativeId", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		return c.json(
 			await collaboration.getInitiative(
@@ -247,8 +289,8 @@ export function createServiceApp(
 		);
 	});
 	app.get("/v1/projects/:projectId/syntheses/deferred", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		const limit = Number(c.req.query("limit") ?? 100);
 		if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
@@ -261,8 +303,8 @@ export function createServiceApp(
 		);
 	});
 	app.get("/v1/projects/:projectId/workshop", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		const limit = Number(c.req.query("limit") ?? 100);
 		if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
@@ -275,8 +317,8 @@ export function createServiceApp(
 		);
 	});
 	app.get("/v1/projects/:projectId/queue", async (c) => {
-		if (role(c.req.header("authorization")) !== "agent") {
-			return c.json({ error: "Agent access required" }, 403);
+		if (!canAccessProject(c.req.header("authorization"))) {
+			return c.json({ error: "Project access required" }, 403);
 		}
 		const limit = Number(c.req.query("limit") ?? 100);
 		if (!Number.isInteger(limit) || limit < 1 || limit > 500) {

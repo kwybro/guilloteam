@@ -33,6 +33,8 @@ import type {
 	TeamInput,
 	TeamMember,
 	UpdateInitiativeInput,
+	WorkspaceFocus,
+	WorkspaceFocusInput,
 } from "@guilloteam/core";
 
 export interface RemoteLearningOptions {
@@ -193,6 +195,8 @@ export interface RemoteProjectWorkspaceClient {
 	createTeam(input: TeamInput): Promise<Team>;
 	joinTeam(teamId: string, input: JoinTeamInput): Promise<TeamMember>;
 	createProject(teamId: string, input: ProjectInput): Promise<Project>;
+	getWorkspaceFocus(userId: string): Promise<WorkspaceFocus>;
+	setWorkspaceFocus(input: WorkspaceFocusInput): Promise<WorkspaceFocus>;
 	getProjectWorkspace(projectId: string): Promise<ProjectWorkspace>;
 	captureNoise(projectId: string, input: NoiseInput): Promise<Noise>;
 	listNoise(projectId: string, options?: { limit?: number }): Promise<Noise[]>;
@@ -264,6 +268,15 @@ export function createRemoteProjectWorkspaceClient(
 		createProject: (teamId, input) =>
 			request<Project>(`/v1/teams/${encodeURIComponent(teamId)}/projects`, {
 				method: "POST",
+				body: JSON.stringify(input),
+			}),
+		getWorkspaceFocus: (userId) =>
+			request<WorkspaceFocus>(
+				`/v1/workspace-focus?userId=${encodeURIComponent(userId)}`,
+			),
+		setWorkspaceFocus: (input) =>
+			request<WorkspaceFocus>("/v1/workspace-focus", {
+				method: "PUT",
 				body: JSON.stringify(input),
 			}),
 		getProjectWorkspace: (projectId) =>

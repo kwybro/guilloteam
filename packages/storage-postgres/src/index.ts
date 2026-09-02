@@ -34,6 +34,8 @@ import type {
 	TeamMember,
 	TeamMemberRole,
 	TeamProjectRepository,
+	WorkspaceFocus,
+	WorkspaceFocusRepository,
 } from "@guilloteam/core";
 import {
 	and,
@@ -72,6 +74,7 @@ import {
 	queues,
 	teamMembers,
 	teams,
+	workspaceFocuses,
 } from "./schema";
 
 export function createPostgresLearningStore(connectionString: string) {
@@ -83,6 +86,7 @@ export function createPostgresLearningStore(connectionString: string) {
 	const queueItemColumns = getTableColumns(queueItems);
 	const teamColumns = getTableColumns(teams);
 	const projectColumns = getTableColumns(projects);
+	const workspaceFocusColumns = getTableColumns(workspaceFocuses);
 	const noiseColumns = getTableColumns(noise);
 	const initiativeColumns = getTableColumns(initiatives);
 	const initiativeQueueColumns = getTableColumns(initiativeQueue);
@@ -126,6 +130,13 @@ export function createPostgresLearningStore(connectionString: string) {
 	const mapProject = (row: typeof projects.$inferSelect): Project => ({
 		...row,
 		createdAt: row.createdAt.toISOString(),
+		updatedAt: row.updatedAt.toISOString(),
+	});
+
+	const mapWorkspaceFocus = (
+		row: typeof workspaceFocuses.$inferSelect,
+	): WorkspaceFocus => ({
+		...row,
 		updatedAt: row.updatedAt.toISOString(),
 	});
 
@@ -226,6 +237,7 @@ export function createPostgresLearningStore(connectionString: string) {
 			close(): Promise<void>;
 			migrate(): Promise<void>;
 		} & TeamProjectRepository &
+		WorkspaceFocusRepository &
 		ProjectNoiseRepository &
 		ProjectInitiativeRepository &
 		ProjectNoOpSynthesisRepository = {
@@ -250,6 +262,16 @@ export function createPostgresLearningStore(connectionString: string) {
 				.from(teams)
 				.where(eq(teams.id, id));
 			return team ? mapTeam(team) : undefined;
+		},
+		async listTeamsForUser(userId: string) {
+			return (
+				await db
+					.select(teamColumns)
+					.from(teams)
+					.innerJoin(teamMembers, eq(teamMembers.teamId, teams.id))
+					.where(eq(teamMembers.userId, userId))
+					.orderBy(asc(teams.createdAt))
+			).map(mapTeam);
 		},
 		async joinTeam(teamId: string, userId: string) {
 			const [created] = await db
@@ -287,6 +309,38 @@ export function createPostgresLearningStore(connectionString: string) {
 				.from(projects)
 				.where(eq(projects.id, id));
 			return project ? mapProject(project) : undefined;
+		},
+		async listProjects(teamId: string) {
+			return (
+				await db
+					.select(projectColumns)
+					.from(projects)
+					.where(eq(projects.teamId, teamId))
+					.orderBy(asc(projects.createdAt))
+			).map(mapProject);
+		},
+		async getWorkspaceFocus(userId: string) {
+			const [focus] = await db
+				.select(workspaceFocusColumns)
+				.from(workspaceFocuses)
+				.where(eq(workspaceFocuses.userId, userId));
+			return focus ? mapWorkspaceFocus(focus) : undefined;
+		},
+		async setWorkspaceFocus(input) {
+			const [focus] = await db
+				.insert(workspaceFocuses)
+				.values(input)
+				.onConflictDoUpdate({
+					target: workspaceFocuses.userId,
+					set: {
+						teamId: input.teamId,
+						projectId: input.projectId,
+						updatedAt: sql`now()`,
+					},
+				})
+				.returning();
+			if (!focus) throw new Error("Failed to set workspace focus.");
+			return mapWorkspaceFocus(focus);
 		},
 		async createNoise(input: NoiseCreate) {
 			const [row] = await db.insert(noise).values(input).returning();

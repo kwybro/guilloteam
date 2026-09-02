@@ -13,6 +13,7 @@ test.skipIf(!databaseUrl)(
 				name: "Guilloteam",
 				ownerId: "ava",
 			});
+			expect(await store.listTeamsForUser("ava")).toEqual([team]);
 			expect(await store.getTeamMember(team.id, "ava")).toMatchObject({
 				role: "owner",
 			});
@@ -36,6 +37,7 @@ test.skipIf(!databaseUrl)(
 				name: "Website",
 				createdByUserId: "ben",
 			});
+			expect(await store.listProjects(team.id)).toEqual([project, website]);
 			const captured = await store.createNoise({
 				projectId: project.id,
 				content: "Make invitations recoverable.",
